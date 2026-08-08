@@ -26,10 +26,10 @@
 
   <main class="max-w-6xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-    <!-- Config Warning Banner (If Keys Not Set) -->
+    <!-- Config Warning Banner (Visible if keys are not set) -->
     <div id="config-warning" class="lg:col-span-12 hidden bg-amber-900/50 border border-amber-500 text-amber-200 p-4 rounded-lg">
       <p class="font-bold">⚠️ Supabase Credentials Missing</p>
-      <p class="text-sm">Please update lines 180-181 in <code>index.html</code> with your <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> to enable live database saving and leaderboard sync.</p>
+      <p class="text-sm">Please update <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> in your script to enable live database saving and leaderboard sync.</p>
     </div>
 
     <!-- LEFT COLUMN: Submission Form -->
@@ -38,22 +38,45 @@
       
       <form id="review-form" class="space-y-5">
         
-        <!-- User & Episode Selection -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+        <!-- User Name, Season Filter, Search & Episode Selection -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
             <label class="block text-sm font-semibold text-gray-300 mb-1">Your Name / Handle</label>
             <input type="text" id="username" required placeholder="e.g., Art Vandelay" 
                    class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400" />
           </div>
+
           <div>
+            <label class="block text-sm font-semibold text-gray-300 mb-1">Filter Season</label>
+            <select id="season-select" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400">
+              <option value="">All Seasons (1–9)</option>
+              <option value="1">Season 1</option>
+              <option value="2">Season 2</option>
+              <option value="3">Season 3</option>
+              <option value="4">Season 4</option>
+              <option value="5">Season 5</option>
+              <option value="6">Season 6</option>
+              <option value="7">Season 7</option>
+              <option value="8">Season 8</option>
+              <option value="9">Season 9</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-300 mb-1">Search Keyword</label>
+            <input type="text" id="search-input" placeholder="e.g., Contest, Marine..." 
+                   class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400" />
+          </div>
+
+          <div class="sm:col-span-2">
             <label class="block text-sm font-semibold text-gray-300 mb-1">Select Episode</label>
             <select id="episode-select" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400">
-              <option value="">-- Choose an episode --</option>
-              <!-- Populated via JavaScript -->
+              <option value="">-- Loading episodes... --</option>
             </select>
           </div>
         </div>
 
+        <!-- Rating Categories -->
         <div class="border-t border-gray-800 pt-4">
           <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Categorized Ratings (1–10)</h3>
           
@@ -67,7 +90,7 @@
           </div>
 
           <!-- Main Characters (10% each) -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <div class="flex justify-between text-xs mb-1">
                 <span class="text-gray-300">Jerry's Storyline (10%)</span>
@@ -102,7 +125,7 @@
           </div>
 
           <!-- Side Characters (10% each) -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <div class="flex justify-between text-xs mb-1">
                 <span class="text-gray-300">Secondary (10%)</span>
@@ -113,7 +136,7 @@
 
             <div>
               <div class="flex justify-between text-xs mb-1">
-                <span class="text-gray-300">Significant Others (10%)</span>
+                <span class="text-gray-300">Sig. Others (10%)</span>
                 <span id="val-so" class="font-mono font-bold text-gray-300">7.0</span>
               </div>
               <input type="range" id="rating-so" min="1" max="10" step="0.5" value="7" class="w-full accent-blue-500 cursor-pointer" />
@@ -140,7 +163,7 @@
         <div class="flex items-center justify-between bg-gray-800 p-4 rounded-lg border border-gray-700">
           <div>
             <span class="text-xs text-gray-400 uppercase tracking-wider block">Calculated Weighted Score</span>
-            <span class="text-xs text-gray-500">30% Story + 10% x 7 Character Categories</span>
+            <span class="text-xs text-gray-500">30% Story + 10% x 7 Subplots</span>
           </div>
           <div id="live-calculated-score" class="text-3xl font-extrabold text-yellow-400 font-mono">
             7.00
@@ -153,14 +176,13 @@
       </form>
     </section>
 
-    <!-- RIGHT COLUMN: Running List & Leaderboard -->
+    <!-- RIGHT COLUMN: Leaderboard -->
     <section class="lg:col-span-5 bg-gray-900 p-6 rounded-xl border border-gray-800 shadow-xl flex flex-col">
       <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-2">
         <h2 class="text-2xl font-bold seinfeld-yellow">Group Leaderboard</h2>
         <button id="refresh-btn" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1 rounded border border-gray-700">Refresh</button>
       </div>
 
-      <!-- Feed Container -->
       <div id="reviews-feed" class="space-y-4 overflow-y-auto max-h-[700px] pr-1">
         <div class="text-center text-gray-500 py-12">Loading group rankings...</div>
       </div>
@@ -169,611 +191,408 @@
   </main>
 
   <script>
-    // =========================================================================
-    // 1. SUPABASE CONFIGURATION (Replace with your actual Supabase details)
-    // =========================================================================
-    const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
-    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+    document.addEventListener("DOMContentLoaded", () => {
+      // =========================================================================
+      // 1. SUPABASE CONFIGURATION
+      // =========================================================================
+      const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+      const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
-    let supabase = null;
-    if (SUPABASE_URL !== "YOUR_SUPABASE_PROJECT_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else {
-      document.getElementById("config-warning").classList.remove("hidden");
-    }
-
-    // =========================================================================
-    // 2. SEINFELD EPISODES DATASET
-    // =========================================================================
-    const episodes = [
-      { id: "S03E17", title: "The Boy Friend" },
-      { id: "S04E11", title: "The Contest" },
-      { id: "S04E22", title: "The Handicapped Spot" },
-      { id: "S05E14", title: "The Marine Biologist" },
-      { id: "S05E21", title: "The Hamptons" },
-      { id: "S06E11", title: "The Switch" },
-      { id: "S07E06", title: "The Soup Nazi" },
-      { id: "S07E10", title: "The Gum" },
-      { id: "S07E21", title: "The Calzone" },
-      { id: "S08E03", title: "The Bizarro Jerry" },
-      { id: "S08E08", title: "The Chicken Roaster" },
-      { id: "S08E19", title: "The Yada Yada" },
-      { id: "S09E03", title: "The Serenity Now" },
-      { id: "S09E18", title: "The Frogger" }
-    ];
-
-    // Populate Dropdown
-    const episodeSelect = document.getElementById("episode-select");
-    episodes.forEach(ep => {
-      const opt = document.createElement("option");
-      opt.value = `${ep.id} - ${ep.title}`;
-      opt.textContent = `[${ep.id}] ${ep.title}`;
-      episodeSelect.appendChild(opt);
-    });
-
-    // =========================================================================
-    // 3. RATING SLIDERS & WEIGHTED CALCULATION MATH
-    // =========================================================================
-    const ratingInputs = ["story", "jerry", "george", "elaine", "kramer", "secondary", "so", "oneshot"];
-
-    function calculateWeightedScore() {
-      const getVal = (id) => parseFloat(document.getElementById(`rating-${id}`).value);
-      
-      const story = getVal("story");
-      const jerry = getVal("jerry");
-      const george = getVal("george");
-      const elaine = getVal("elaine");
-      const kramer = getVal("kramer");
-      const secondary = getVal("secondary");
-      const so = getVal("so");
-      const oneshot = getVal("oneshot");
-
-      // Math: 30% Story + 10% for each of the 7 character categories = 100%
-      const finalScore = (story * 0.30) + 
-                         (jerry * 0.10) + 
-                         (george * 0.10) + 
-                         (elaine * 0.10) + 
-                         (kramer * 0.10) + 
-                         (secondary * 0.10) + 
-                         (so * 0.10) + 
-                         (oneshot * 0.10);
-
-      document.getElementById("live-calculated-score").textContent = finalScore.toFixed(2);
-      return finalScore.toFixed(2);
-    }
-
-    // Attach listeners to all range inputs
-    ratingInputs.forEach(key => {
-      const input = document.getElementById(`rating-${key}`);
-      const display = document.getElementById(`val-${key}`);
-      input.addEventListener("input", (e) => {
-        display.textContent = parseFloat(e.target.value).toFixed(1);
-        calculateWeightedScore();
-      });
-    });
-
-    // =========================================================================
-    // 4. SUBMIT REVIEW TO SUPABASE
-    // =========================================================================
-    document.getElementById("review-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      if (!supabase) {
-        alert("Supabase credentials are not configured. Please add your URL and Key in index.html.");
-        return;
-      }
-
-      const submitBtn = document.getElementById("submit-btn");
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Saving Review...";
-
-      const payload = {
-        username: document.getElementById("username").value,
-        episode_title: document.getElementById("episode-select").value,
-        story_rating: parseFloat(document.getElementById("rating-story").value),
-        jerry_rating: parseFloat(document.getElementById("rating-jerry").value),
-        george_rating: parseFloat(document.getElementById("rating-george").value),
-        elaine_rating: parseFloat(document.getElementById("rating-elaine").value),
-        kramer_rating: parseFloat(document.getElementById("rating-kramer").value),
-        secondary_rating: parseFloat(document.getElementById("rating-secondary").value),
-        so_rating: parseFloat(document.getElementById("rating-so").value),
-        oneshot_rating: parseFloat(document.getElementById("rating-oneshot").value),
-        weighted_score: parseFloat(calculateWeightedScore()),
-        best_scene: document.getElementById("best-scene").value
-      };
-
-      const { data, error } = await supabase.from("reviews").insert([payload]);
-
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Submit Review";
-
-      if (error) {
-        console.error(error);
-        alert("Error saving review: " + error.message);
+      let supabase = null;
+      if (SUPABASE_URL !== "YOUR_SUPABASE_PROJECT_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       } else {
-        alert("Giddy up! Review submitted.");
-        document.getElementById("best-scene").value = "";
-        fetchLeaderboard();
-      }
-    });
-
-    // =========================================================================
-    // 5. FETCH & DISPLAY LEADERBOARD
-    // =========================================================================
-    async function fetchLeaderboard() {
-      const feed = document.getElementById("reviews-feed");
-
-      if (!supabase) {
-        feed.innerHTML = `
-          <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 text-sm text-gray-400 text-center">
-            Connect Supabase to see real-time rankings and reviews from your friends!
-          </div>`;
-        return;
+        document.getElementById("config-warning")?.classList.remove("hidden");
       }
 
-      const { data: reviews, error } = await supabase
-        .from("reviews")
-        .select("*")
-        .order("weighted_score", { ascending: false });
+      // =========================================================================
+      // 2. COMPLETE 180-EPISODE SEINFELD DATASET
+      // =========================================================================
+      const episodes = [
+        // SEASON 1
+        { id: "S01E01", title: "The Seinfeld Chronicles" },
+        { id: "S01E02", title: "The Stake Out" },
+        { id: "S01E03", title: "The Robbery" },
+        { id: "S01E04", title: "Male Unbonding" },
+        { id: "S01E05", title: "The Stock Tip" },
+        // SEASON 2
+        { id: "S02E01", title: "The Ex-Girlfriend" },
+        { id: "S02E02", title: "The Pony Remark" },
+        { id: "S02E03", title: "The Jacket" },
+        { id: "S02E04", title: "The Phone Message" },
+        { id: "S02E05", title: "The Apartment" },
+        { id: "S02E06", title: "The Statue" },
+        { id: "S02E07", title: "The Revenge" },
+        { id: "S02E08", title: "The Heart Attack" },
+        { id: "S02E09", title: "The Deal" },
+        { id: "S02E10", title: "The Baby Shower" },
+        { id: "S02E11", title: "The Chinese Restaurant" },
+        { id: "S02E12", title: "The Busboy" },
+        // SEASON 3
+        { id: "S03E01", title: "The Note" },
+        { id: "S03E02", title: "The Truth" },
+        { id: "S03E03", title: "The Pen" },
+        { id: "S03E04", title: "The Dog" },
+        { id: "S03E05", title: "The Library" },
+        { id: "S03E06", title: "The Parking Garage" },
+        { id: "S03E07", title: "The Cafe" },
+        { id: "S03E08", title: "The Tape" },
+        { id: "S03E09", title: "The Nose Job" },
+        { id: "S03E10", title: "The Alternate Side" },
+        { id: "S03E11", title: "The Red Dot" },
+        { id: "S03E12", title: "The Suicide" },
+        { id: "S03E13", title: "The Subway" },
+        { id: "S03E14", title: "The Pez Dispenser" },
+        { id: "S03E15", title: "The Fix-Up" },
+        { id: "S03E16", title: "The Boyfriend (Part 1)" },
+        { id: "S03E17", title: "The Boyfriend (Part 2)" },
+        { id: "S03E18", title: "The Limo" },
+        { id: "S03E19", title: "The Good Samaritan" },
+        { id: "S03E20", title: "The Letter" },
+        { id: "S03E21", title: "The Parking Space" },
+        { id: "S03E22", title: "The Keys" },
+        // SEASON 4
+        { id: "S04E01", title: "The Trip (Part 1)" },
+        { id: "S04E02", title: "The Trip (Part 2)" },
+        { id: "S04E03", title: "The Pitch" },
+        { id: "S04E04", title: "The Ticket" },
+        { id: "S04E05", title: "The Wallet" },
+        { id: "S04E06", title: "The Watch" },
+        { id: "S04E07", title: "The Bubble Boy" },
+        { id: "S04E08", title: "The Cheever Letters" },
+        { id: "S04E09", title: "The Opera" },
+        { id: "S04E10", title: "The Virgin" },
+        { id: "S04E11", title: "The Contest" },
+        { id: "S04E12", title: "The Airport" },
+        { id: "S04E13", title: "The Pick" },
+        { id: "S04E14", title: "The Movie" },
+        { id: "S04E15", title: "The Visa" },
+        { id: "S04E16", title: "The Shoes" },
+        { id: "S04E17", title: "The Outing" },
+        { id: "S04E18", title: "The Old Man" },
+        { id: "S04E19", title: "The Implant" },
+        { id: "S04E20", title: "The Junior Mint" },
+        { id: "S04E21", title: "The Smelly Car" },
+        { id: "S04E22", title: "The Handicapped Spot" },
+        { id: "S04E23", title: "The Pilot (Part 1)" },
+        { id: "S04E24", title: "The Pilot (Part 2)" },
+        // SEASON 5
+        { id: "S05E01", title: "The Mango" },
+        { id: "S05E02", title: "The Puffy Shirt" },
+        { id: "S05E03", title: "The Glasses" },
+        { id: "S05E04", title: "The Sniffing Accountant" },
+        { id: "S05E05", title: "The Bris" },
+        { id: "S05E06", title: "The Lip Reader" },
+        { id: "S05E07", title: "The Non-Fat Yogurt" },
+        { id: "S05E08", title: "The Barber" },
+        { id: "S05E09", title: "The Masseuse" },
+        { id: "S05E10", title: "The Cigar Store Indian" },
+        { id: "S05E11", title: "The Conversion" },
+        { id: "S05E12", title: "The Stall" },
+        { id: "S05E13", title: "The Dinner Party" },
+        { id: "S05E14", title: "The Marine Biologist" },
+        { id: "S05E15", title: "The Pie" },
+        { id: "S05E16", title: "The Stand-In" },
+        { id: "S05E17", title: "The Wife" },
+        { id: "S05E18", title: "The Raincoats (Part 1)" },
+        { id: "S05E19", title: "The Raincoats (Part 2)" },
+        { id: "S05E20", title: "The Fire" },
+        { id: "S05E21", title: "The Hamptons" },
+        { id: "S05E22", title: "The Opposite" },
+        // SEASON 6
+        { id: "S06E01", title: "The Chaperone" },
+        { id: "S06E02", title: "The Big Salad" },
+        { id: "S06E03", title: "The Pledge Drive" },
+        { id: "S06E04", title: "The Chinese Woman" },
+        { id: "S06E05", title: "The Couch" },
+        { id: "S06E06", title: "The Gymnast" },
+        { id: "S06E07", title: "The Soup" },
+        { id: "S06E08", title: "The Mom & Pop Store" },
+        { id: "S06E09", title: "The Secretary" },
+        { id: "S06E10", title: "The Switch" },
+        { id: "S06E11", title: "The Race" },
+        { id: "S06E12", title: "The Label Maker" },
+        { id: "S06E13", title: "The Scofflaw" },
+        { id: "S06E14", title: "The Highlights of 100 (Part 1)" },
+        { id: "S06E15", title: "The Highlights of 100 (Part 2)" },
+        { id: "S06E16", title: "The Beard" },
+        { id: "S06E17", title: "The Kiss Hello" },
+        { id: "S06E18", title: "The Doorman" },
+        { id: "S06E19", title: "The Jimmy" },
+        { id: "S06E20", title: "The Doodle" },
+        { id: "S06E21", title: "The Fusilli Jerry" },
+        { id: "S06E22", title: "The Diplomat's Club" },
+        { id: "S06E23", title: "The Face Painter" },
+        { id: "S06E24", title: "The Understudy" },
+        // SEASON 7
+        { id: "S07E01", title: "The Engagement" },
+        { id: "S07E02", title: "The Postponement" },
+        { id: "S07E03", title: "The Maestro" },
+        { id: "S07E04", title: "The Wink" },
+        { id: "S07E05", title: "The Hot Tub" },
+        { id: "S07E06", title: "The Soup Nazi" },
+        { id: "S07E07", title: "The Secret Code" },
+        { id: "S07E08", title: "The Pool Guy" },
+        { id: "S07E09", title: "The Sponge" },
+        { id: "S07E10", title: "The Gum" },
+        { id: "S07E11", title: "The Rye" },
+        { id: "S07E12", title: "The Caddy" },
+        { id: "S07E13", title: "The Seven" },
+        { id: "S07E14", title: "The Cadillac (Part 1)" },
+        { id: "S07E15", title: "The Cadillac (Part 2)" },
+        { id: "S07E16", title: "The Shower Head" },
+        { id: "S07E17", title: "The Doll" },
+        { id: "S07E18", title: "The Friars Club" },
+        { id: "S07E19", title: "The Wig Master" },
+        { id: "S07E20", title: "The Calzone" },
+        { id: "S07E21", title: "The Bottle Deposit (Part 1)" },
+        { id: "S07E22", title: "The Bottle Deposit (Part 2)" },
+        { id: "S07E23", title: "The Wait Out" },
+        { id: "S07E24", title: "The Invitations" },
+        // SEASON 8
+        { id: "S08E01", title: "The Foundation" },
+        { id: "S08E02", title: "The Soul Mate" },
+        { id: "S08E03", title: "The Bizarro Jerry" },
+        { id: "S08E04", title: "The Little Kicks" },
+        { id: "S08E05", title: "The Package" },
+        { id: "S08E06", title: "The Fatigues" },
+        { id: "S08E07", title: "The Checks" },
+        { id: "S08E08", title: "The Chicken Roaster" },
+        { id: "S08E09", title: "The Abstinence" },
+        { id: "S08E10", title: "The Andrea Doria" },
+        { id: "S08E11", title: "The Little Jerry" },
+        { id: "S08E12", title: "The Money" },
+        { id: "S08E13", title: "The Comeback" },
+        { id: "S08E14", title: "The Van Buren Boys" },
+        { id: "S08E15", title: "The Susie" },
+        { id: "S08E16", title: "The Pothole" },
+        { id: "S08E17", title: "The English Patient" },
+        { id: "S08E18", title: "The Nap" },
+        { id: "S08E19", title: "The Yada Yada" },
+        { id: "S08E20", title: "The Millennium" },
+        { id: "S08E21", title: "The Muffin Tops" },
+        { id: "S08E22", title: "The Summer of George" },
+        // SEASON 9
+        { id: "S09E01", title: "The Butter Shave" },
+        { id: "S09E02", title: "The Voice" },
+        { id: "S09E03", title: "The Serenity Now" },
+        { id: "S09E04", title: "The Blood" },
+        { id: "S09E05", title: "The Junk Mail" },
+        { id: "S09E06", title: "The Merv Griffin Show" },
+        { id: "S09E07", title: "The Slicer" },
+        { id: "S09E08", title: "The Betrayal" },
+        { id: "S09E09", title: "The Apology" },
+        { id: "S09E10", title: "The Strike" },
+        { id: "S09E11", title: "The Dealership" },
+        { id: "S09E12", title: "The Reverse Peephole" },
+        { id: "S09E13", title: "The Cartoon" },
+        { id: "S09E14", title: "The Strongbox" },
+        { id: "S09E15", title: "The Wizard" },
+        { id: "S09E16", title: "The Burning" },
+        { id: "S09E17", title: "The Bookstore" },
+        { id: "S09E18", title: "The Frogger" },
+        { id: "S09E19", title: "The Maid" },
+        { id: "S09E20", title: "The Puerto Rican Day" },
+        { id: "S09E21", title: "The Chronicle (Part 1)" },
+        { id: "S09E22", title: "The Chronicle (Part 2)" },
+        { id: "S09E23", title: "The Finale (Part 1)" },
+        { id: "S09E24", title: "The Finale (Part 2)" }
+      ];
 
-      if (error) {
-        feed.innerHTML = `<div class="text-red-400 text-sm text-center">Failed to load feed: ${error.message}</div>`;
-        return;
+      // =========================================================================
+      // 3. DROPDOWN POPULATION & FILTERING
+      // =========================================================================
+      const seasonSelect = document.getElementById("season-select");
+      const searchInput = document.getElementById("search-input");
+      const episodeSelect = document.getElementById("episode-select");
+
+      function filterEpisodes() {
+        const selectedSeason = seasonSelect.value;
+        const searchQuery = searchInput.value.trim().toLowerCase();
+
+        episodeSelect.innerHTML = '<option value="">-- Choose an episode --</option>';
+
+        const filtered = episodes.filter(ep => {
+          let matchesSeason = true;
+          if (selectedSeason) {
+            const seasonPrefix = `S${String(selectedSeason).padStart(2, "0")}`;
+            matchesSeason = ep.id.startsWith(seasonPrefix);
+          }
+
+          let matchesSearch = true;
+          if (searchQuery) {
+            matchesSearch = ep.title.toLowerCase().includes(searchQuery) || 
+                            ep.id.toLowerCase().includes(searchQuery);
+          }
+
+          return matchesSeason && matchesSearch;
+        });
+
+        if (filtered.length === 0) {
+          episodeSelect.disabled = true;
+          episodeSelect.classList.add("cursor-not-allowed");
+          const opt = document.createElement("option");
+          opt.textContent = "-- No matching episodes --";
+          episodeSelect.appendChild(opt);
+          return;
+        }
+
+        filtered.forEach(ep => {
+          const seasonNum = parseInt(ep.id.substring(1, 3));
+          const opt = document.createElement("option");
+          opt.value = `Season ${seasonNum} - ${ep.id} ${ep.title}`;
+          opt.textContent = `[${ep.id}] ${ep.title}`;
+          episodeSelect.appendChild(opt);
+        });
+
+        episodeSelect.disabled = false;
+        episodeSelect.classList.remove("cursor-not-allowed");
       }
 
-      if (!reviews || reviews.length === 0) {
-        feed.innerHTML = `<div class="text-gray-500 text-sm text-center py-8">No reviews submitted yet. Be the first!</div>`;
-        return;
+      seasonSelect.addEventListener("change", filterEpisodes);
+      searchInput.addEventListener("input", filterEpisodes);
+
+      // Populate list immediately on page load
+      filterEpisodes();
+
+      // =========================================================================
+      // 4. WEIGHTED SCORE MATH (30% Story + 10% x 7 Categories = 100%)
+      // =========================================================================
+      const ratingKeys = ["story", "jerry", "george", "elaine", "kramer", "secondary", "so", "oneshot"];
+
+      function calculateWeightedScore() {
+        const getVal = (id) => parseFloat(document.getElementById(`rating-${id}`).value);
+
+        const finalScore = (getVal("story") * 0.30) + 
+                           (getVal("jerry") * 0.10) + 
+                           (getVal("george") * 0.10) + 
+                           (getVal("elaine") * 0.10) + 
+                           (getVal("kramer") * 0.10) + 
+                           (getVal("secondary") * 0.10) + 
+                           (getVal("so") * 0.10) + 
+                           (getVal("oneshot") * 0.10);
+
+        const formattedScore = finalScore.toFixed(2);
+        document.getElementById("live-calculated-score").textContent = formattedScore;
+        return formattedScore;
       }
 
-      feed.innerHTML = reviews.map((r, index) => `
-        <div class="bg-gray-800/80 p-4 rounded-lg border border-gray-700 hover:border-gray-600 transition-all">
-          <div class="flex justify-between items-start mb-2">
-            <div>
-              <span class="text-xs font-bold text-yellow-500 uppercase tracking-wider">#${index + 1} Ranked</span>
-              <h4 class="font-bold text-white text-base">${escapeHtml(r.episode_title)}</h4>
+      ratingKeys.forEach(key => {
+        const input = document.getElementById(`rating-${key}`);
+        const display = document.getElementById(`val-${key}`);
+        input.addEventListener("input", (e) => {
+          display.textContent = parseFloat(e.target.value).toFixed(1);
+          calculateWeightedScore();
+        });
+      });
+
+      // =========================================================================
+      // 5. SUBMIT REVIEW TO SUPABASE
+      // =========================================================================
+      document.getElementById("review-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        if (!supabase) {
+          alert("Supabase credentials are not configured. Please paste your URL and Anon Key into index.html.");
+          return;
+        }
+
+        const submitBtn = document.getElementById("submit-btn");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Saving Review...";
+
+        const payload = {
+          username: document.getElementById("username").value,
+          episode_title: document.getElementById("episode-select").value,
+          story_rating: parseFloat(document.getElementById("rating-story").value),
+          jerry_rating: parseFloat(document.getElementById("rating-jerry").value),
+          george_rating: parseFloat(document.getElementById("rating-george").value),
+          elaine_rating: parseFloat(document.getElementById("rating-elaine").value),
+          kramer_rating: parseFloat(document.getElementById("rating-kramer").value),
+          secondary_rating: parseFloat(document.getElementById("rating-secondary").value),
+          so_rating: parseFloat(document.getElementById("rating-so").value),
+          oneshot_rating: parseFloat(document.getElementById("rating-oneshot").value),
+          weighted_score: parseFloat(calculateWeightedScore()),
+          best_scene: document.getElementById("best-scene").value
+        };
+
+        const { data, error } = await supabase.from("reviews").insert([payload]);
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Review";
+
+        if (error) {
+          console.error(error);
+          alert("Error saving review: " + error.message);
+        } else {
+          alert("Giddy up! Review submitted successfully.");
+          document.getElementById("best-scene").value = "";
+          fetchLeaderboard();
+        }
+      });
+
+      // =========================================================================
+      // 6. FETCH LEADERBOARD
+      // =========================================================================
+      async function fetchLeaderboard() {
+        const feed = document.getElementById("reviews-feed");
+
+        if (!supabase) {
+          feed.innerHTML = `
+            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 text-sm text-gray-400 text-center">
+              Connect your Supabase URL & Anon Key to view live friend submissions!
+            </div>`;
+          return;
+        }
+
+        const { data: reviews, error } = await supabase
+          .from("reviews")
+          .select("*")
+          .order("weighted_score", { ascending: false });
+
+        if (error) {
+          feed.innerHTML = `<div class="text-red-400 text-sm text-center">Failed to load leaderboard: ${error.message}</div>`;
+          return;
+        }
+
+        if (!reviews || reviews.length === 0) {
+          feed.innerHTML = `<div class="text-gray-500 text-sm text-center py-8">No reviews submitted yet. Be the first!</div>`;
+          return;
+        }
+
+        feed.innerHTML = reviews.map((r, index) => `
+          <div class="bg-gray-800/80 p-4 rounded-lg border border-gray-700 hover:border-gray-600 transition-all">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <span class="text-xs font-bold text-yellow-500 uppercase tracking-wider">#${index + 1} Ranked</span>
+                <h4 class="font-bold text-white text-base">${escapeHtml(r.episode_title)}</h4>
+              </div>
+              <span class="text-2xl font-black text-yellow-400 font-mono bg-gray-900 px-2 py-1 rounded border border-yellow-500/30">
+                ${Number(r.weighted_score).toFixed(2)}
+              </span>
             </div>
-            <span class="text-2xl font-black text-yellow-400 font-mono bg-gray-900 px-2 py-1 rounded border border-yellow-500/30">
-              ${Number(r.weighted_score).toFixed(2)}
-            </span>
+            
+            ${r.best_scene ? `
+              <p class="text-xs italic text-gray-300 bg-gray-900/60 p-2 rounded border-l-2 border-red-500 mb-2">
+                "${escapeHtml(r.best_scene)}"
+              </p>` : ''}
+
+            <div class="flex justify-between text-xs text-gray-500 mt-2 pt-2 border-t border-gray-700/50">
+              <span>Reviewed by <strong class="text-gray-300">${escapeHtml(r.username)}</strong></span>
+              <span>Story: ${r.story_rating}/10</span>
+            </div>
           </div>
-          
-          ${r.best_scene ? `
-            <p class="text-xs italic text-gray-300 bg-gray-900/60 p-2 rounded border-l-2 border-red-500 mb-2">
-              "${escapeHtml(r.best_scene)}"
-            </p>` : ''}
-
-          <div class="flex justify-between text-xs text-gray-500 mt-2 pt-2 border-t border-gray-700/50">
-            <span>Reviewed by <strong class="text-gray-300">${escapeHtml(r.username)}</strong></span>
-            <span>Story: ${r.story_rating}/10</span>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    function escapeHtml(str) {
-      return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    document.getElementById("refresh-btn").addEventListener("click", fetchLeaderboard);
-
-    // Initial Load
-    fetchLeaderboard();
-  </script>
-<script>
-  // =========================================================================
-  // 1. SUPABASE CONFIGURATION
-  // Replace these placeholder values with your actual Supabase credentials
-  // =========================================================================
-  const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
-  const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
-
-  let supabase = null;
-  if (SUPABASE_URL !== "YOUR_SUPABASE_PROJECT_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } else {
-    document.getElementById("config-warning")?.classList.remove("hidden");
-  }
-
-  // =========================================================================
-  // 2. COMPLETE 180-EPISODE SEINFELD DATASET
-  // =========================================================================
-  const episodes = [
-    // SEASON 1
-    { id: "S01E01", title: "The Seinfeld Chronicles" },
-    { id: "S01E02", title: "The Stake Out" },
-    { id: "S01E03", title: "The Robbery" },
-    { id: "S01E04", title: "Male Unbonding" },
-    { id: "S01E05", title: "The Stock Tip" },
-
-    // SEASON 2
-    { id: "S02E01", title: "The Ex-Girlfriend" },
-    { id: "S02E02", title: "The Pony Remark" },
-    { id: "S02E03", title: "The Jacket" },
-    { id: "S02E04", title: "The Phone Message" },
-    { id: "S02E05", title: "The Apartment" },
-    { id: "S02E06", title: "The Statue" },
-    { id: "S02E07", title: "The Revenge" },
-    { id: "S02E08", title: "The Heart Attack" },
-    { id: "S02E09", title: "The Deal" },
-    { id: "S02E10", title: "The Baby Shower" },
-    { id: "S02E11", title: "The Chinese Restaurant" },
-    { id: "S02E12", title: "The Busboy" },
-
-    // SEASON 3
-    { id: "S03E01", title: "The Note" },
-    { id: "S03E02", title: "The Truth" },
-    { id: "S03E03", title: "The Pen" },
-    { id: "S03E04", title: "The Dog" },
-    { id: "S03E05", title: "The Library" },
-    { id: "S03E06", title: "The Parking Garage" },
-    { id: "S03E07", title: "The Cafe" },
-    { id: "S03E08", title: "The Tape" },
-    { id: "S03E09", title: "The Nose Job" },
-    { id: "S03E10", title: "The Alternate Side" },
-    { id: "S03E11", title: "The Red Dot" },
-    { id: "S03E12", title: "The Suicide" },
-    { id: "S03E13", title: "The Subway" },
-    { id: "S03E14", title: "The Pez Dispenser" },
-    { id: "S03E15", title: "The Fix-Up" },
-    { id: "S03E16", title: "The Boyfriend (Part 1)" },
-    { id: "S03E17", title: "The Boyfriend (Part 2)" },
-    { id: "S03E18", title: "The Limo" },
-    { id: "S03E19", title: "The Good Samaritan" },
-    { id: "S03E20", title: "The Letter" },
-    { id: "S03E21", title: "The Parking Space" },
-    { id: "S03E22", title: "The Keys" },
-
-    // SEASON 4
-    { id: "S04E01", title: "The Trip (Part 1)" },
-    { id: "S04E02", title: "The Trip (Part 2)" },
-    { id: "S04E03", title: "The Pitch" },
-    { id: "S04E04", title: "The Ticket" },
-    { id: "S04E05", title: "The Wallet" },
-    { id: "S04E06", title: "The Watch" },
-    { id: "S04E07", title: "The Bubble Boy" },
-    { id: "S04E08", title: "The Cheever Letters" },
-    { id: "S04E09", title: "The Opera" },
-    { id: "S04E10", title: "The Virgin" },
-    { id: "S04E11", title: "The Contest" },
-    { id: "S04E12", title: "The Airport" },
-    { id: "S04E13", title: "The Pick" },
-    { id: "S04E14", title: "The Movie" },
-    { id: "S04E15", title: "The Visa" },
-    { id: "S04E16", title: "The Shoes" },
-    { id: "S04E17", title: "The Outing" },
-    { id: "S04E18", title: "The Old Man" },
-    { id: "S04E19", title: "The Implant" },
-    { id: "S04E20", title: "The Junior Mint" },
-    { id: "S04E21", title: "The Smelly Car" },
-    { id: "S04E22", title: "The Handicapped Spot" },
-    { id: "S04E23", title: "The Pilot (Part 1)" },
-    { id: "S04E24", title: "The Pilot (Part 2)" },
-
-    // SEASON 5
-    { id: "S05E01", title: "The Mango" },
-    { id: "S05E02", title: "The Puffy Shirt" },
-    { id: "S05E03", title: "The Glasses" },
-    { id: "S05E04", title: "The Sniffing Accountant" },
-    { id: "S05E05", title: "The Bris" },
-    { id: "S05E06", title: "The Lip Reader" },
-    { id: "S05E07", title: "The Non-Fat Yogurt" },
-    { id: "S05E08", title: "The Barber" },
-    { id: "S05E09", title: "The Masseuse" },
-    { id: "S05E10", title: "The Cigar Store Indian" },
-    { id: "S05E11", title: "The Conversion" },
-    { id: "S05E12", title: "The Stall" },
-    { id: "S05E13", title: "The Dinner Party" },
-    { id: "S05E14", title: "The Marine Biologist" },
-    { id: "S05E15", title: "The Pie" },
-    { id: "S05E16", title: "The Stand-In" },
-    { id: "S05E17", title: "The Wife" },
-    { id: "S05E18", title: "The Raincoats (Part 1)" },
-    { id: "S05E19", title: "The Raincoats (Part 2)" },
-    { id: "S05E20", title: "The Fire" },
-    { id: "S05E21", title: "The Hamptons" },
-    { id: "S05E22", title: "The Opposite" },
-
-    // SEASON 6
-    { id: "S06E01", title: "The Chaperone" },
-    { id: "S06E02", title: "The Big Salad" },
-    { id: "S06E03", title: "The Pledge Drive" },
-    { id: "S06E04", title: "The Chinese Woman" },
-    { id: "S06E05", title: "The Couch" },
-    { id: "S06E06", title: "The Gymnast" },
-    { id: "S06E07", title: "The Soup" },
-    { id: "S06E08", title: "The Mom & Pop Store" },
-    { id: "S06E09", title: "The Secretary" },
-    { id: "S06E10", title: "The Switch" },
-    { id: "S06E11", title: "The Race" },
-    { id: "S06E12", title: "The Label Maker" },
-    { id: "S06E13", title: "The Scofflaw" },
-    { id: "S06E14", title: "The Highlights of 100 (Part 1)" },
-    { id: "S06E15", title: "The Highlights of 100 (Part 2)" },
-    { id: "S06E16", title: "The Beard" },
-    { id: "S06E17", title: "The Kiss Hello" },
-    { id: "S06E18", title: "The Doorman" },
-    { id: "S06E19", title: "The Jimmy" },
-    { id: "S06E20", title: "The Doodle" },
-    { id: "S06E21", title: "The Fusilli Jerry" },
-    { id: "S06E22", title: "The Diplomat's Club" },
-    { id: "S06E23", title: "The Face Painter" },
-    { id: "S06E24", title: "The Understudy" },
-
-    // SEASON 7
-    { id: "S07E01", title: "The Engagement" },
-    { id: "S07E02", title: "The Postponement" },
-    { id: "S07E03", title: "The Maestro" },
-    { id: "S07E04", title: "The Wink" },
-    { id: "S07E05", title: "The Hot Tub" },
-    { id: "S07E06", title: "The Soup Nazi" },
-    { id: "S07E07", title: "The Secret Code" },
-    { id: "S07E08", title: "The Pool Guy" },
-    { id: "S07E09", title: "The Sponge" },
-    { id: "S07E10", title: "The Gum" },
-    { id: "S07E11", title: "The Rye" },
-    { id: "S07E12", title: "The Caddy" },
-    { id: "S07E13", title: "The Seven" },
-    { id: "S07E14", title: "The Cadillac (Part 1)" },
-    { id: "S07E15", title: "The Cadillac (Part 2)" },
-    { id: "S07E16", title: "The Shower Head" },
-    { id: "S07E17", title: "The Doll" },
-    { id: "S07E18", title: "The Friars Club" },
-    { id: "S07E19", title: "The Wig Master" },
-    { id: "S07E20", title: "The Calzone" },
-    { id: "S07E21", title: "The Bottle Deposit (Part 1)" },
-    { id: "S07E22", title: "The Bottle Deposit (Part 2)" },
-    { id: "S07E23", title: "The Wait Out" },
-    { id: "S07E24", title: "The Invitations" },
-
-    // SEASON 8
-    { id: "S08E01", title: "The Foundation" },
-    { id: "S08E02", title: "The Soul Mate" },
-    { id: "S08E03", title: "The Bizarro Jerry" },
-    { id: "S08E04", title: "The Little Kicks" },
-    { id: "S08E05", title: "The Package" },
-    { id: "S08E06", title: "The Fatigues" },
-    { id: "S08E07", title: "The Checks" },
-    { id: "S08E08", title: "The Chicken Roaster" },
-    { id: "S08E09", title: "The Abstinence" },
-    { id: "S08E10", title: "The Andrea Doria" },
-    { id: "S08E11", title: "The Little Jerry" },
-    { id: "S08E12", title: "The Money" },
-    { id: "S08E13", title: "The Comeback" },
-    { id: "S08E14", title: "The Van Buren Boys" },
-    { id: "S08E15", title: "The Susie" },
-    { id: "S08E16", title: "The Pothole" },
-    { id: "S08E17", title: "The English Patient" },
-    { id: "S08E18", title: "The Nap" },
-    { id: "S08E19", title: "The Yada Yada" },
-    { id: "S08E20", title: "The Millennium" },
-    { id: "S08E21", title: "The Muffin Tops" },
-    { id: "S08E22", title: "The Summer of George" },
-
-    // SEASON 9
-    { id: "S09E01", title: "The Butter Shave" },
-    { id: "S09E02", title: "The Voice" },
-    { id: "S09E03", title: "The Serenity Now" },
-    { id: "S09E04", title: "The Blood" },
-    { id: "S09E05", title: "The Junk Mail" },
-    { id: "S09E06", title: "The Merv Griffin Show" },
-    { id: "S09E07", title: "The Slicer" },
-    { id: "S09E08", title: "The Betrayal" },
-    { id: "S09E09", title: "The Apology" },
-    { id: "S09E10", title: "The Strike" },
-    { id: "S09E11", title: "The Dealership" },
-    { id: "S09E12", title: "The Reverse Peephole" },
-    { id: "S09E13", title: "The Cartoon" },
-    { id: "S09E14", title: "The Strongbox" },
-    { id: "S09E15", title: "The Wizard" },
-    { id: "S09E16", title: "The Burning" },
-    { id: "S09E17", title: "The Bookstore" },
-    { id: "S09E18", title: "The Frogger" },
-    { id: "S09E19", title: "The Maid" },
-    { id: "S09E20", title: "The Puerto Rican Day" },
-    { id: "S09E21", title: "The Chronicle (Part 1)" },
-    { id: "S09E22", title: "The Chronicle (Part 2)" },
-    { id: "S09E23", title: "The Finale (Part 1)" },
-    { id: "S09E24", title: "The Finale (Part 2)" }
-  ];
-
-  // =========================================================================
-  // 3. SEASON FILTER + TEXT SEARCH FILTER LOGIC
-  // =========================================================================
-  const seasonSelect = document.getElementById("season-select");
-  const searchInput = document.getElementById("search-input");
-  const episodeSelect = document.getElementById("episode-select");
-
-  function filterEpisodes() {
-    const selectedSeason = seasonSelect.value;
-    const searchQuery = searchInput.value.trim().toLowerCase();
-
-    // Reset dropdown options
-    episodeSelect.innerHTML = '<option value="">-- Choose an episode --</option>';
-
-    const filtered = episodes.filter(ep => {
-      // Season filter condition
-      let matchesSeason = true;
-      if (selectedSeason) {
-        const seasonPrefix = `S${String(selectedSeason).padStart(2, "0")}`;
-        matchesSeason = ep.id.startsWith(seasonPrefix);
+        `).join("");
       }
 
-      // Search query condition
-      let matchesSearch = true;
-      if (searchQuery) {
-        matchesSearch = ep.title.toLowerCase().includes(searchQuery) || 
-                        ep.id.toLowerCase().includes(searchQuery);
+      function escapeHtml(str) {
+        return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       }
 
-      return matchesSeason && matchesSearch;
-    });
+      document.getElementById("refresh-btn")?.addEventListener("click", fetchLeaderboard);
 
-    if (filtered.length === 0) {
-      episodeSelect.disabled = true;
-      episodeSelect.classList.add("cursor-not-allowed");
-      const opt = document.createElement("option");
-      opt.textContent = "-- No matching episodes --";
-      episodeSelect.appendChild(opt);
-      return;
-    }
-
-    filtered.forEach(ep => {
-      const seasonNum = parseInt(ep.id.substring(1, 3));
-      const opt = document.createElement("option");
-      opt.value = `Season ${seasonNum} - ${ep.id} ${ep.title}`;
-      opt.textContent = `[${ep.id}] ${ep.title}`;
-      episodeSelect.appendChild(opt);
-    });
-
-    episodeSelect.disabled = false;
-    episodeSelect.classList.remove("cursor-not-allowed");
-  }
-
-  seasonSelect.addEventListener("change", filterEpisodes);
-  searchInput.addEventListener("input", filterEpisodes);
-
-  // Initial populate on page load
-  filterEpisodes();
-
-  // =========================================================================
-  // 4. RATING SLIDERS & WEIGHTED CALCULATION MATH
-  // Formula: 30% Story + 10% each for Jerry, George, Elaine, Kramer,
-  //          Secondary, SOs, Single-Shots = 100% Total Score
-  // =========================================================================
-  const ratingKeys = ["story", "jerry", "george", "elaine", "kramer", "secondary", "so", "oneshot"];
-
-  function calculateWeightedScore() {
-    const getVal = (id) => parseFloat(document.getElementById(`rating-${id}`).value);
-
-    const finalScore = (getVal("story") * 0.30) + 
-                       (getVal("jerry") * 0.10) + 
-                       (getVal("george") * 0.10) + 
-                       (getVal("elaine") * 0.10) + 
-                       (getVal("kramer") * 0.10) + 
-                       (getVal("secondary") * 0.10) + 
-                       (getVal("so") * 0.10) + 
-                       (getVal("oneshot") * 0.10);
-
-    const formattedScore = finalScore.toFixed(2);
-    document.getElementById("live-calculated-score").textContent = formattedScore;
-    return formattedScore;
-  }
-
-  ratingKeys.forEach(key => {
-    const input = document.getElementById(`rating-${key}`);
-    const display = document.getElementById(`val-${key}`);
-    input.addEventListener("input", (e) => {
-      display.textContent = parseFloat(e.target.value).toFixed(1);
-      calculateWeightedScore();
-    });
-  });
-
-  // =========================================================================
-  // 5. SUBMIT REVIEW TO SUPABASE
-  // =========================================================================
-  document.getElementById("review-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    if (!supabase) {
-      alert("Supabase credentials are not configured. Please add your URL and Anon Key in index.html.");
-      return;
-    }
-
-    const submitBtn = document.getElementById("submit-btn");
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Saving Review...";
-
-    const payload = {
-      username: document.getElementById("username").value,
-      episode_title: document.getElementById("episode-select").value,
-      story_rating: parseFloat(document.getElementById("rating-story").value),
-      jerry_rating: parseFloat(document.getElementById("rating-jerry").value),
-      george_rating: parseFloat(document.getElementById("rating-george").value),
-      elaine_rating: parseFloat(document.getElementById("rating-elaine").value),
-      kramer_rating: parseFloat(document.getElementById("rating-kramer").value),
-      secondary_rating: parseFloat(document.getElementById("rating-secondary").value),
-      so_rating: parseFloat(document.getElementById("rating-so").value),
-      oneshot_rating: parseFloat(document.getElementById("rating-oneshot").value),
-      weighted_score: parseFloat(calculateWeightedScore()),
-      best_scene: document.getElementById("best-scene").value
-    };
-
-    const { data, error } = await supabase.from("reviews").insert([payload]);
-
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Submit Review";
-
-    if (error) {
-      console.error(error);
-      alert("Error saving review: " + error.message);
-    } else {
-      alert("Giddy up! Review submitted successfully.");
-      document.getElementById("best-scene").value = "";
       fetchLeaderboard();
-    }
-  });
-
-  // =========================================================================
-  // 6. FETCH & DISPLAY LEADERBOARD
-  // =========================================================================
-  async function fetchLeaderboard() {
-    const feed = document.getElementById("reviews-feed");
-
-    if (!supabase) {
-      feed.innerHTML = `
-        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 text-sm text-gray-400 text-center">
-          Connect your Supabase URL & Anon Key to view live friend submissions!
-        </div>`;
-      return;
-    }
-
-    const { data: reviews, error } = await supabase
-      .from("reviews")
-      .select("*")
-      .order("weighted_score", { ascending: false });
-
-    if (error) {
-      feed.innerHTML = `<div class="text-red-400 text-sm text-center">Failed to load leaderboard: ${error.message}</div>`;
-      return;
-    }
-
-    if (!reviews || reviews.length === 0) {
-      feed.innerHTML = `<div class="text-gray-500 text-sm text-center py-8">No reviews submitted yet. Be the first!</div>`;
-      return;
-    }
-
-    feed.innerHTML = reviews.map((r, index) => `
-      <div class="bg-gray-800/80 p-4 rounded-lg border border-gray-700 hover:border-gray-600 transition-all">
-        <div class="flex justify-between items-start mb-2">
-          <div>
-            <span class="text-xs font-bold text-yellow-500 uppercase tracking-wider">#${index + 1} Ranked</span>
-            <h4 class="font-bold text-white text-base">${escapeHtml(r.episode_title)}</h4>
-          </div>
-          <span class="text-2xl font-black text-yellow-400 font-mono bg-gray-900 px-2 py-1 rounded border border-yellow-500/30">
-            ${Number(r.weighted_score).toFixed(2)}
-          </span>
-        </div>
-        
-        ${r.best_scene ? `
-          <p class="text-xs italic text-gray-300 bg-gray-900/60 p-2 rounded border-l-2 border-red-500 mb-2">
-            "${escapeHtml(r.best_scene)}"
-          </p>` : ''}
-
-        <div class="flex justify-between text-xs text-gray-500 mt-2 pt-2 border-t border-gray-700/50">
-          <span>Reviewed by <strong class="text-gray-300">${escapeHtml(r.username)}</strong></span>
-          <span>Story: ${r.story_rating}/10</span>
-        </div>
-      </div>
-    `).join("");
-  }
-
-  function escapeHtml(str) {
-    return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
-
-  document.getElementById("refresh-btn")?.addEventListener("click", fetchLeaderboard);
-
-  // Initial fetch on page load
-  fetchLeaderboard();
-</script>
+    });
+  </script>
+</body>
+</html>
