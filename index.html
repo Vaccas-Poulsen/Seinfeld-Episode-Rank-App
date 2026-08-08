@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seinfeld Episode Ranker</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { background-color: #111827; color: #f3f4f6; }
+    .seinfeld-yellow { color: #facc15; }
+    .seinfeld-red { color: #ef4444; }
+  </style>
+</head>
+<body class="min-h-screen font-sans pb-12">
+
+  <!-- Header -->
+  <header class="border-b border-gray-800 bg-gray-900 py-6 text-center shadow-lg">
+    <h1 class="text-4xl font-extrabold tracking-wider seinfeld-yellow uppercase">
+      Seinfeld <span class="seinfeld-red">Ranker</span>
+    </h1>
+    <p class="text-sm text-gray-400 mt-1">Rate episodes, weigh the subplots, compare with friends.</p>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+    <!-- Config Warning Banner (If Keys Not Set) -->
+    <div id="config-warning" class="lg:col-span-12 hidden bg-amber-900/50 border border-amber-500 text-amber-200 p-4 rounded-lg">
+      <p class="font-bold">⚠️ Supabase Credentials Missing</p>
+      <p class="text-sm">Please update lines 180-181 in <code>index.html</code> with your <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> to enable live database saving and leaderboard sync.</p>
+    </div>
+
+    <!-- LEFT COLUMN: Submission Form -->
+    <section class="lg:col-span-7 bg-gray-900 p-6 rounded-xl border border-gray-800 shadow-xl">
+      <h2 class="text-2xl font-bold seinfeld-yellow mb-6 border-b border-gray-800 pb-2">Submit Episode Review</h2>
+      
+      <form id="review-form" class="space-y-5">
+        
+        <!-- User & Episode Selection -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-300 mb-1">Your Name / Handle</label>
+            <input type="text" id="username" required placeholder="e.g., Art Vandelay" 
+                   class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400" />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-300 mb-1">Select Episode</label>
+            <select id="episode-select" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400">
+              <option value="">-- Choose an episode --</option>
+              <!-- Populated via JavaScript -->
+            </select>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-800 pt-4">
+          <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Categorized Ratings (1–10)</h3>
+          
+          <!-- Story Rating (30%) -->
+          <div class="bg-gray-800/60 p-3 rounded-lg mb-4 border border-yellow-500/30">
+            <div class="flex justify-between text-sm mb-1">
+              <span class="font-bold text-yellow-400">Overall Story (30%)</span>
+              <span id="val-story" class="font-mono font-bold text-yellow-400">7.0</span>
+            </div>
+            <input type="range" id="rating-story" min="1" max="10" step="0.5" value="7" class="w-full accent-yellow-400 cursor-pointer" />
+          </div>
+
+          <!-- Main Characters (10% each) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-gray-300">Jerry's Storyline (10%)</span>
+                <span id="val-jerry" class="font-mono font-bold text-gray-300">7.0</span>
+              </div>
+              <input type="range" id="rating-jerry" min="1" max="10" step="0.5" value="7" class="w-full accent-red-500 cursor-pointer" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-gray-300">George's Storyline (10%)</span>
+                <span id="val-george" class="font-mono font-bold text-gray-300">7.0</span>
+              </div>
+              <input type="range" id="rating-george" min="1" max="10" step="0.5" value="7" class="w-full accent-red-500 cursor-pointer" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-gray-300">Elaine's Storyline (10%)</span>
+                <span id="val-elaine" class="font-mono font-bold text-gray-300">7.0</span>
+              </div>
+              <input type="range" id="rating-elaine" min="1" max="10" step="0.5" value="7" class="w-full accent-red-500 cursor-pointer" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-gray-300">Kramer's Storyline (10%)</span>
+                <span id="val-kramer" class="font-mono font-bold text-gray-300">7.0</span>
+              </div>
+              <input type="range" id="rating-kramer" min="1" max="10" step="0.5" value="7" class="w-full accent-red-500 cursor-pointer" />
+            </div>
+          </div>
+
+          <!-- Side Characters (10% each) -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-gray-300">Secondary (10%)</span>
+                <span id="val-secondary" class="font-mono font-bold text-gray-300">7.0</span>
+              </div>
+              <input type="range" id="rating-secondary" min="1" max="10" step="0.5" value="7" class="w-full accent-blue-500 cursor-pointer" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-gray-300">Significant Others (10%)</span>
+                <span id="val-so" class="font-mono font-bold text-gray-300">7.0</span>
+              </div>
+              <input type="range" id="rating-so" min="1" max="10" step="0.5" value="7" class="w-full accent-blue-500 cursor-pointer" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-gray-300">Single-Shots (10%)</span>
+                <span id="val-oneshot" class="font-mono font-bold text-gray-300">7.0</span>
+              </div>
+              <input type="range" id="rating-oneshot" min="1" max="10" step="0.5" value="7" class="w-full accent-blue-500 cursor-pointer" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Best Scene Text -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-300 mb-1">Best Scene / Quote</label>
+          <textarea id="best-scene" rows="2" placeholder="e.g., George's marine biologist speech at the beach..." 
+                    class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400"></textarea>
+        </div>
+
+        <!-- Live Score Calculation Box -->
+        <div class="flex items-center justify-between bg-gray-800 p-4 rounded-lg border border-gray-700">
+          <div>
+            <span class="text-xs text-gray-400 uppercase tracking-wider block">Calculated Weighted Score</span>
+            <span class="text-xs text-gray-500">30% Story + 10% x 7 Character Categories</span>
+          </div>
+          <div id="live-calculated-score" class="text-3xl font-extrabold text-yellow-400 font-mono">
+            7.00
+          </div>
+        </div>
+
+        <button type="submit" id="submit-btn" class="w-full bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold py-3 px-4 rounded-lg transition-colors shadow-lg">
+          Submit Review
+        </button>
+      </form>
+    </section>
+
+    <!-- RIGHT COLUMN: Running List & Leaderboard -->
+    <section class="lg:col-span-5 bg-gray-900 p-6 rounded-xl border border-gray-800 shadow-xl flex flex-col">
+      <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-2">
+        <h2 class="text-2xl font-bold seinfeld-yellow">Group Leaderboard</h2>
+        <button id="refresh-btn" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1 rounded border border-gray-700">Refresh</button>
+      </div>
+
+      <!-- Feed Container -->
+      <div id="reviews-feed" class="space-y-4 overflow-y-auto max-h-[700px] pr-1">
+        <div class="text-center text-gray-500 py-12">Loading group rankings...</div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // =========================================================================
+    // 1. SUPABASE CONFIGURATION (Replace with your actual Supabase details)
+    // =========================================================================
+    const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+    let supabase = null;
+    if (SUPABASE_URL !== "YOUR_SUPABASE_PROJECT_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } else {
+      document.getElementById("config-warning").classList.remove("hidden");
+    }
+
+    // =========================================================================
+    // 2. SEINFELD EPISODES DATASET
+    // =========================================================================
+    const episodes = [
+      { id: "S03E17", title: "The Boy Friend" },
+      { id: "S04E11", title: "The Contest" },
+      { id: "S04E22", title: "The Handicapped Spot" },
+      { id: "S05E14", title: "The Marine Biologist" },
+      { id: "S05E21", title: "The Hamptons" },
+      { id: "S06E11", title: "The Switch" },
+      { id: "S07E06", title: "The Soup Nazi" },
+      { id: "S07E10", title: "The Gum" },
+      { id: "S07E21", title: "The Calzone" },
+      { id: "S08E03", title: "The Bizarro Jerry" },
+      { id: "S08E08", title: "The Chicken Roaster" },
+      { id: "S08E19", title: "The Yada Yada" },
+      { id: "S09E03", title: "The Serenity Now" },
+      { id: "S09E18", title: "The Frogger" }
+    ];
+
+    // Populate Dropdown
+    const episodeSelect = document.getElementById("episode-select");
+    episodes.forEach(ep => {
+      const opt = document.createElement("option");
+      opt.value = `${ep.id} - ${ep.title}`;
+      opt.textContent = `[${ep.id}] ${ep.title}`;
+      episodeSelect.appendChild(opt);
+    });
+
+    // =========================================================================
+    // 3. RATING SLIDERS & WEIGHTED CALCULATION MATH
+    // =========================================================================
+    const ratingInputs = ["story", "jerry", "george", "elaine", "kramer", "secondary", "so", "oneshot"];
+
+    function calculateWeightedScore() {
+      const getVal = (id) => parseFloat(document.getElementById(`rating-${id}`).value);
+      
+      const story = getVal("story");
+      const jerry = getVal("jerry");
+      const george = getVal("george");
+      const elaine = getVal("elaine");
+      const kramer = getVal("kramer");
+      const secondary = getVal("secondary");
+      const so = getVal("so");
+      const oneshot = getVal("oneshot");
+
+      // Math: 30% Story + 10% for each of the 7 character categories = 100%
+      const finalScore = (story * 0.30) + 
+                         (jerry * 0.10) + 
+                         (george * 0.10) + 
+                         (elaine * 0.10) + 
+                         (kramer * 0.10) + 
+                         (secondary * 0.10) + 
+                         (so * 0.10) + 
+                         (oneshot * 0.10);
+
+      document.getElementById("live-calculated-score").textContent = finalScore.toFixed(2);
+      return finalScore.toFixed(2);
+    }
+
+    // Attach listeners to all range inputs
+    ratingInputs.forEach(key => {
+      const input = document.getElementById(`rating-${key}`);
+      const display = document.getElementById(`val-${key}`);
+      input.addEventListener("input", (e) => {
+        display.textContent = parseFloat(e.target.value).toFixed(1);
+        calculateWeightedScore();
+      });
+    });
+
+    // =========================================================================
+    // 4. SUBMIT REVIEW TO SUPABASE
+    // =========================================================================
+    document.getElementById("review-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      if (!supabase) {
+        alert("Supabase credentials are not configured. Please add your URL and Key in index.html.");
+        return;
+      }
+
+      const submitBtn = document.getElementById("submit-btn");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Saving Review...";
+
+      const payload = {
+        username: document.getElementById("username").value,
+        episode_title: document.getElementById("episode-select").value,
+        story_rating: parseFloat(document.getElementById("rating-story").value),
+        jerry_rating: parseFloat(document.getElementById("rating-jerry").value),
+        george_rating: parseFloat(document.getElementById("rating-george").value),
+        elaine_rating: parseFloat(document.getElementById("rating-elaine").value),
+        kramer_rating: parseFloat(document.getElementById("rating-kramer").value),
+        secondary_rating: parseFloat(document.getElementById("rating-secondary").value),
+        so_rating: parseFloat(document.getElementById("rating-so").value),
+        oneshot_rating: parseFloat(document.getElementById("rating-oneshot").value),
+        weighted_score: parseFloat(calculateWeightedScore()),
+        best_scene: document.getElementById("best-scene").value
+      };
+
+      const { data, error } = await supabase.from("reviews").insert([payload]);
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit Review";
+
+      if (error) {
+        console.error(error);
+        alert("Error saving review: " + error.message);
+      } else {
+        alert("Giddy up! Review submitted.");
+        document.getElementById("best-scene").value = "";
+        fetchLeaderboard();
+      }
+    });
+
+    // =========================================================================
+    // 5. FETCH & DISPLAY LEADERBOARD
+    // =========================================================================
+    async function fetchLeaderboard() {
+      const feed = document.getElementById("reviews-feed");
+
+      if (!supabase) {
+        feed.innerHTML = `
+          <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 text-sm text-gray-400 text-center">
+            Connect Supabase to see real-time rankings and reviews from your friends!
+          </div>`;
+        return;
+      }
+
+      const { data: reviews, error } = await supabase
+        .from("reviews")
+        .select("*")
+        .order("weighted_score", { ascending: false });
+
+      if (error) {
+        feed.innerHTML = `<div class="text-red-400 text-sm text-center">Failed to load feed: ${error.message}</div>`;
+        return;
+      }
+
+      if (!reviews || reviews.length === 0) {
+        feed.innerHTML = `<div class="text-gray-500 text-sm text-center py-8">No reviews submitted yet. Be the first!</div>`;
+        return;
+      }
+
+      feed.innerHTML = reviews.map((r, index) => `
+        <div class="bg-gray-800/80 p-4 rounded-lg border border-gray-700 hover:border-gray-600 transition-all">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <span class="text-xs font-bold text-yellow-500 uppercase tracking-wider">#${index + 1} Ranked</span>
+              <h4 class="font-bold text-white text-base">${escapeHtml(r.episode_title)}</h4>
+            </div>
+            <span class="text-2xl font-black text-yellow-400 font-mono bg-gray-900 px-2 py-1 rounded border border-yellow-500/30">
+              ${Number(r.weighted_score).toFixed(2)}
+            </span>
+          </div>
+          
+          ${r.best_scene ? `
+            <p class="text-xs italic text-gray-300 bg-gray-900/60 p-2 rounded border-l-2 border-red-500 mb-2">
+              "${escapeHtml(r.best_scene)}"
+            </p>` : ''}
+
+          <div class="flex justify-between text-xs text-gray-500 mt-2 pt-2 border-t border-gray-700/50">
+            <span>Reviewed by <strong class="text-gray-300">${escapeHtml(r.username)}</strong></span>
+            <span>Story: ${r.story_rating}/10</span>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function escapeHtml(str) {
+      return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    document.getElementById("refresh-btn").addEventListener("click", fetchLeaderboard);
+
+    // Initial Load
+    fetchLeaderboard();
+  </script>
+</body>
+</html>
