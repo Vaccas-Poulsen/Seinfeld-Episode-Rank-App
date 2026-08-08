@@ -4,7 +4,7 @@ Application to rank Seinfeld Episodes among friends
 
 A web application for ranking *Seinfeld* episodes with custom category weighting, real-time score calculation, and a shared group leaderboard.
 
-🚀 **Live App:** [https://YOUR-GITHUB-USERNAME.github.io/YOUR-REPO-NAME/](https://YOUR-GITHUB-USERNAME.github.io/YOUR-REPO-NAME/)
+🚀 **Live App:** [https://YOUR-GITHUB-USERNAME.github.io/YOUR-REPO-NAME/](https://Vaccas-Poulsen.github.io/Seinfeld-Episode-Rank-App/)
 
 ---
 
