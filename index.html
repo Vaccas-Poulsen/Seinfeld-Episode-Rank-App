@@ -40,10 +40,16 @@
         
         <!-- User Name, Season Filter, Search & Episode Selection -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Dynamic Handle Selector -->
           <div class="sm:col-span-2">
             <label class="block text-sm font-semibold text-gray-300 mb-1">Your Name / Handle</label>
-            <input type="text" id="username" required placeholder="e.g., Art Vandelay" 
-                   class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400" />
+            <select id="username-select" required class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-400">
+              <option value="">-- Loading Handles... --</option>
+              <option value="__NEW_HANDLE__">+ Create New Handle...</option>
+            </select>
+            <!-- Hidden Input for New Handles -->
+            <input type="text" id="custom-username" placeholder="Type your new handle (e.g., Art Vandelay)..." 
+                   class="hidden w-full bg-gray-800 border border-yellow-500 rounded-lg px-3 py-2 text-white focus:outline-none mt-2" />
           </div>
 
           <div>
@@ -280,8 +286,8 @@
       // 1. SUPABASE CONFIGURATION
       // Replace with your actual Supabase URL and Public Anon Key
       // =========================================================================
-      const SUPABASE_URL = "https://zzjfrzeigykpeilzddzz.supabase.co";
-      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6amZyemVpZ3lrcGVpbHpkZHp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyMTU2MjMsImV4cCI6MjEwMTc5MTYyM30.6qy9XFodisxOMunAgavZkme3u8SV_IHP8SMWYargau8";
+      const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+      const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
       let supabase = null;
       if (SUPABASE_URL !== "YOUR_SUPABASE_PROJECT_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
@@ -544,7 +550,46 @@
       filterEpisodes();
 
       // =========================================================================
-      // 3. DYNAMIC N/A WEIGHT REDISTRIBUTION & MATH
+      // 3. DYNAMIC HANDLE SELECTOR LOGIC
+      // =========================================================================
+      const usernameSelect = document.getElementById("username-select");
+      const customUsernameInput = document.getElementById("custom-username");
+
+      usernameSelect.addEventListener("change", (e) => {
+        if (e.target.value === "__NEW_HANDLE__") {
+          customUsernameInput.classList.remove("hidden");
+          customUsernameInput.required = true;
+          customUsernameInput.focus();
+        } else {
+          customUsernameInput.classList.add("hidden");
+          customUsernameInput.required = false;
+          customUsernameInput.value = "";
+        }
+      });
+
+      function populateUserHandlesDropdown() {
+        const existingHandles = [...new Set(cachedReviews.map(r => r.username))].filter(Boolean).sort();
+        const currentSel = usernameSelect.value;
+
+        usernameSelect.innerHTML = '<option value="">-- Select Your Handle --</option>';
+
+        existingHandles.forEach(handle => {
+          const opt = document.createElement("option");
+          opt.value = handle;
+          opt.textContent = handle;
+          if (handle === currentSel) opt.selected = true;
+          usernameSelect.appendChild(opt);
+        });
+
+        const newOpt = document.createElement("option");
+        newOpt.value = "__NEW_HANDLE__";
+        newOpt.textContent = "+ Create New Handle...";
+        if (currentSel === "__NEW_HANDLE__") newOpt.selected = true;
+        usernameSelect.appendChild(newOpt);
+      }
+
+      // =========================================================================
+      // 4. DYNAMIC N/A WEIGHT REDISTRIBUTION & MATH
       // =========================================================================
       const categoryConfig = [
         { id: "story", baseWeight: 0.30 },
@@ -609,7 +654,7 @@
       }
 
       // =========================================================================
-      // 4. SUBMIT REVIEW TO SUPABASE
+      // 5. SUBMIT REVIEW TO SUPABASE
       // =========================================================================
       document.getElementById("review-form").addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -619,12 +664,27 @@
           return;
         }
 
+        // Determine handle (Selected vs. Custom)
+        let handle = usernameSelect.value;
+        if (handle === "__NEW_HANDLE__") {
+          handle = customUsernameInput.value.trim();
+          if (!handle) {
+            alert("Please enter a custom handle.");
+            return;
+          }
+        }
+
+        if (!handle) {
+          alert("Please select or enter your name/handle.");
+          return;
+        }
+
         const submitBtn = document.getElementById("submit-btn");
         submitBtn.disabled = true;
         submitBtn.textContent = "Saving Review...";
 
         const payload = {
-          username: document.getElementById("username").value,
+          username: handle,
           episode_title: document.getElementById("episode-select").value,
           story_rating: getCategoryValue("story"),
           jerry_rating: getCategoryValue("jerry"),
@@ -649,12 +709,20 @@
         } else {
           alert("Giddy up! Review submitted successfully.");
           document.getElementById("best-scene").value = "";
-          fetchLeaderboard();
+          
+          // Reset custom handle UI & set selection to the newly used handle
+          customUsernameInput.classList.add("hidden");
+          customUsernameInput.required = false;
+          customUsernameInput.value = "";
+
+          // Refresh database feed & rebuild handle dropdown
+          await fetchLeaderboard();
+          usernameSelect.value = handle;
         }
       });
 
       // =========================================================================
-      // 5. TABS & SIDE-BY-SIDE COMPARISON LOGIC
+      // 6. TABS & SIDE-BY-SIDE COMPARISON LOGIC
       // =========================================================================
       const tabGroupBtn = document.getElementById("tab-group");
       const tabFeedBtn = document.getElementById("tab-feed");
@@ -727,12 +795,13 @@
         }
 
         cachedReviews = reviews || [];
+        populateUserHandlesDropdown();
         populateUserDropdowns();
         renderLeaderboard();
       }
 
       function populateUserDropdowns() {
-        const users = [...new Set(cachedReviews.map(r => r.username))].sort();
+        const users = [...new Set(cachedReviews.map(r => r.username))].filter(Boolean).sort();
 
         userFilterSelect.innerHTML = '<option value="">Filter by Participant: Show Everyone</option>';
         users.forEach(u => {
