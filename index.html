@@ -176,33 +176,53 @@
       </form>
     </section>
 
-  <!-- RIGHT COLUMN: Leaderboard with Dual View Tabs & User Filter -->
+
+<!-- RIGHT COLUMN: Leaderboards & Side-by-Side Comparison -->
 <section class="lg:col-span-5 bg-gray-900 p-6 rounded-xl border border-gray-800 shadow-xl flex flex-col">
   <div class="border-b border-gray-800 pb-4 mb-4">
     <div class="flex justify-between items-center mb-3">
-      <h2 class="text-2xl font-bold seinfeld-yellow">Leaderboards</h2>
+      <h2 class="text-2xl font-bold seinfeld-yellow">Rankings & Stats</h2>
       <button id="refresh-btn" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1 rounded border border-gray-700">Refresh</button>
     </div>
     
-    <!-- View Switcher Tabs -->
-    <div class="flex gap-2 mb-3">
-      <button id="tab-group" class="flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-yellow-500 text-gray-950 transition-colors">
-        🏆 Group Averages (Total)
+    <!-- 3-Way Tab Switcher -->
+    <div class="grid grid-cols-3 gap-1.5 mb-3">
+      <button id="tab-group" class="py-1.5 px-2 text-xs font-bold rounded-lg bg-yellow-500 text-gray-950 transition-colors">
+        🏆 Group
       </button>
-      <button id="tab-feed" class="flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors">
-        👤 Individual Submissions
+      <button id="tab-feed" class="py-1.5 px-2 text-xs font-bold rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors">
+        👤 Individual
+      </button>
+      <button id="tab-compare" class="py-1.5 px-2 text-xs font-bold rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors">
+        ⚔️ Compare
       </button>
     </div>
 
-    <!-- Participant Filter Dropdown -->
-    <div>
+    <!-- Filter Control for Individual Tab -->
+    <div id="single-filter-container">
       <select id="user-filter" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-yellow-400">
         <option value="">Filter by Participant: Show Everyone</option>
       </select>
     </div>
+
+    <!-- Dual User Selectors for Side-by-Side Comparison Tab -->
+    <div id="compare-selectors-container" class="hidden grid grid-cols-2 gap-2">
+      <div>
+        <label class="block text-[10px] text-gray-400 uppercase font-bold mb-1">Friend #1</label>
+        <select id="compare-user-a" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-yellow-400 font-semibold focus:outline-none focus:border-yellow-400">
+          <option value="">-- Select Friend A --</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-[10px] text-gray-400 uppercase font-bold mb-1">Friend #2</label>
+        <select id="compare-user-b" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-red-400 font-semibold focus:outline-none focus:border-yellow-400">
+          <option value="">-- Select Friend B --</option>
+        </select>
+      </div>
+    </div>
   </div>
 
-  <!-- Leaderboard Feed -->
+  <!-- Feed Output Container -->
   <div id="reviews-feed" class="space-y-4 overflow-y-auto max-h-[700px] pr-1">
     <div class="text-center text-gray-500 py-12">Loading group rankings...</div>
   </div>
@@ -211,410 +231,6 @@
   </main>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      // =========================================================================
-      // 1. SUPABASE CONFIGURATION
-      // =========================================================================
-      const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
-      const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
-
-      let supabase = null;
-      if (SUPABASE_URL !== "YOUR_SUPABASE_PROJECT_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      } else {
-        document.getElementById("config-warning")?.classList.remove("hidden");
-      }
-
-      // =========================================================================
-      // 2. COMPLETE 180-EPISODE SEINFELD DATASET
-      // =========================================================================
-      const episodes = [
-        // SEASON 1
-        { id: "S01E01", title: "The Seinfeld Chronicles" },
-        { id: "S01E02", title: "The Stake Out" },
-        { id: "S01E03", title: "The Robbery" },
-        { id: "S01E04", title: "Male Unbonding" },
-        { id: "S01E05", title: "The Stock Tip" },
-        // SEASON 2
-        { id: "S02E01", title: "The Ex-Girlfriend" },
-        { id: "S02E02", title: "The Pony Remark" },
-        { id: "S02E03", title: "The Jacket" },
-        { id: "S02E04", title: "The Phone Message" },
-        { id: "S02E05", title: "The Apartment" },
-        { id: "S02E06", title: "The Statue" },
-        { id: "S02E07", title: "The Revenge" },
-        { id: "S02E08", title: "The Heart Attack" },
-        { id: "S02E09", title: "The Deal" },
-        { id: "S02E10", title: "The Baby Shower" },
-        { id: "S02E11", title: "The Chinese Restaurant" },
-        { id: "S02E12", title: "The Busboy" },
-        // SEASON 3
-        { id: "S03E01", title: "The Note" },
-        { id: "S03E02", title: "The Truth" },
-        { id: "S03E03", title: "The Pen" },
-        { id: "S03E04", title: "The Dog" },
-        { id: "S03E05", title: "The Library" },
-        { id: "S03E06", title: "The Parking Garage" },
-        { id: "S03E07", title: "The Cafe" },
-        { id: "S03E08", title: "The Tape" },
-        { id: "S03E09", title: "The Nose Job" },
-        { id: "S03E10", title: "The Alternate Side" },
-        { id: "S03E11", title: "The Red Dot" },
-        { id: "S03E12", title: "The Suicide" },
-        { id: "S03E13", title: "The Subway" },
-        { id: "S03E14", title: "The Pez Dispenser" },
-        { id: "S03E15", title: "The Fix-Up" },
-        { id: "S03E16", title: "The Boyfriend (Part 1)" },
-        { id: "S03E17", title: "The Boyfriend (Part 2)" },
-        { id: "S03E18", title: "The Limo" },
-        { id: "S03E19", title: "The Good Samaritan" },
-        { id: "S03E20", title: "The Letter" },
-        { id: "S03E21", title: "The Parking Space" },
-        { id: "S03E22", title: "The Keys" },
-        // SEASON 4
-        { id: "S04E01", title: "The Trip (Part 1)" },
-        { id: "S04E02", title: "The Trip (Part 2)" },
-        { id: "S04E03", title: "The Pitch" },
-        { id: "S04E04", title: "The Ticket" },
-        { id: "S04E05", title: "The Wallet" },
-        { id: "S04E06", title: "The Watch" },
-        { id: "S04E07", title: "The Bubble Boy" },
-        { id: "S04E08", title: "The Cheever Letters" },
-        { id: "S04E09", title: "The Opera" },
-        { id: "S04E10", title: "The Virgin" },
-        { id: "S04E11", title: "The Contest" },
-        { id: "S04E12", title: "The Airport" },
-        { id: "S04E13", title: "The Pick" },
-        { id: "S04E14", title: "The Movie" },
-        { id: "S04E15", title: "The Visa" },
-        { id: "S04E16", title: "The Shoes" },
-        { id: "S04E17", title: "The Outing" },
-        { id: "S04E18", title: "The Old Man" },
-        { id: "S04E19", title: "The Implant" },
-        { id: "S04E20", title: "The Junior Mint" },
-        { id: "S04E21", title: "The Smelly Car" },
-        { id: "S04E22", title: "The Handicapped Spot" },
-        { id: "S04E23", title: "The Pilot (Part 1)" },
-        { id: "S04E24", title: "The Pilot (Part 2)" },
-        // SEASON 5
-        { id: "S05E01", title: "The Mango" },
-        { id: "S05E02", title: "The Puffy Shirt" },
-        { id: "S05E03", title: "The Glasses" },
-        { id: "S05E04", title: "The Sniffing Accountant" },
-        { id: "S05E05", title: "The Bris" },
-        { id: "S05E06", title: "The Lip Reader" },
-        { id: "S05E07", title: "The Non-Fat Yogurt" },
-        { id: "S05E08", title: "The Barber" },
-        { id: "S05E09", title: "The Masseuse" },
-        { id: "S05E10", title: "The Cigar Store Indian" },
-        { id: "S05E11", title: "The Conversion" },
-        { id: "S05E12", title: "The Stall" },
-        { id: "S05E13", title: "The Dinner Party" },
-        { id: "S05E14", title: "The Marine Biologist" },
-        { id: "S05E15", title: "The Pie" },
-        { id: "S05E16", title: "The Stand-In" },
-        { id: "S05E17", title: "The Wife" },
-        { id: "S05E18", title: "The Raincoats (Part 1)" },
-        { id: "S05E19", title: "The Raincoats (Part 2)" },
-        { id: "S05E20", title: "The Fire" },
-        { id: "S05E21", title: "The Hamptons" },
-        { id: "S05E22", title: "The Opposite" },
-        // SEASON 6
-        { id: "S06E01", title: "The Chaperone" },
-        { id: "S06E02", title: "The Big Salad" },
-        { id: "S06E03", title: "The Pledge Drive" },
-        { id: "S06E04", title: "The Chinese Woman" },
-        { id: "S06E05", title: "The Couch" },
-        { id: "S06E06", title: "The Gymnast" },
-        { id: "S06E07", title: "The Soup" },
-        { id: "S06E08", title: "The Mom & Pop Store" },
-        { id: "S06E09", title: "The Secretary" },
-        { id: "S06E10", title: "The Switch" },
-        { id: "S06E11", title: "The Race" },
-        { id: "S06E12", title: "The Label Maker" },
-        { id: "S06E13", title: "The Scofflaw" },
-        { id: "S06E14", title: "The Highlights of 100 (Part 1)" },
-        { id: "S06E15", title: "The Highlights of 100 (Part 2)" },
-        { id: "S06E16", title: "The Beard" },
-        { id: "S06E17", title: "The Kiss Hello" },
-        { id: "S06E18", title: "The Doorman" },
-        { id: "S06E19", title: "The Jimmy" },
-        { id: "S06E20", title: "The Doodle" },
-        { id: "S06E21", title: "The Fusilli Jerry" },
-        { id: "S06E22", title: "The Diplomat's Club" },
-        { id: "S06E23", title: "The Face Painter" },
-        { id: "S06E24", title: "The Understudy" },
-        // SEASON 7
-        { id: "S07E01", title: "The Engagement" },
-        { id: "S07E02", title: "The Postponement" },
-        { id: "S07E03", title: "The Maestro" },
-        { id: "S07E04", title: "The Wink" },
-        { id: "S07E05", title: "The Hot Tub" },
-        { id: "S07E06", title: "The Soup Nazi" },
-        { id: "S07E07", title: "The Secret Code" },
-        { id: "S07E08", title: "The Pool Guy" },
-        { id: "S07E09", title: "The Sponge" },
-        { id: "S07E10", title: "The Gum" },
-        { id: "S07E11", title: "The Rye" },
-        { id: "S07E12", title: "The Caddy" },
-        { id: "S07E13", title: "The Seven" },
-        { id: "S07E14", title: "The Cadillac (Part 1)" },
-        { id: "S07E15", title: "The Cadillac (Part 2)" },
-        { id: "S07E16", title: "The Shower Head" },
-        { id: "S07E17", title: "The Doll" },
-        { id: "S07E18", title: "The Friars Club" },
-        { id: "S07E19", title: "The Wig Master" },
-        { id: "S07E20", title: "The Calzone" },
-        { id: "S07E21", title: "The Bottle Deposit (Part 1)" },
-        { id: "S07E22", title: "The Bottle Deposit (Part 2)" },
-        { id: "S07E23", title: "The Wait Out" },
-        { id: "S07E24", title: "The Invitations" },
-        // SEASON 8
-        { id: "S08E01", title: "The Foundation" },
-        { id: "S08E02", title: "The Soul Mate" },
-        { id: "S08E03", title: "The Bizarro Jerry" },
-        { id: "S08E04", title: "The Little Kicks" },
-        { id: "S08E05", title: "The Package" },
-        { id: "S08E06", title: "The Fatigues" },
-        { id: "S08E07", title: "The Checks" },
-        { id: "S08E08", title: "The Chicken Roaster" },
-        { id: "S08E09", title: "The Abstinence" },
-        { id: "S08E10", title: "The Andrea Doria" },
-        { id: "S08E11", title: "The Little Jerry" },
-        { id: "S08E12", title: "The Money" },
-        { id: "S08E13", title: "The Comeback" },
-        { id: "S08E14", title: "The Van Buren Boys" },
-        { id: "S08E15", title: "The Susie" },
-        { id: "S08E16", title: "The Pothole" },
-        { id: "S08E17", title: "The English Patient" },
-        { id: "S08E18", title: "The Nap" },
-        { id: "S08E19", title: "The Yada Yada" },
-        { id: "S08E20", title: "The Millennium" },
-        { id: "S08E21", title: "The Muffin Tops" },
-        { id: "S08E22", title: "The Summer of George" },
-        // SEASON 9
-        { id: "S09E01", title: "The Butter Shave" },
-        { id: "S09E02", title: "The Voice" },
-        { id: "S09E03", title: "The Serenity Now" },
-        { id: "S09E04", title: "The Blood" },
-        { id: "S09E05", title: "The Junk Mail" },
-        { id: "S09E06", title: "The Merv Griffin Show" },
-        { id: "S09E07", title: "The Slicer" },
-        { id: "S09E08", title: "The Betrayal" },
-        { id: "S09E09", title: "The Apology" },
-        { id: "S09E10", title: "The Strike" },
-        { id: "S09E11", title: "The Dealership" },
-        { id: "S09E12", title: "The Reverse Peephole" },
-        { id: "S09E13", title: "The Cartoon" },
-        { id: "S09E14", title: "The Strongbox" },
-        { id: "S09E15", title: "The Wizard" },
-        { id: "S09E16", title: "The Burning" },
-        { id: "S09E17", title: "The Bookstore" },
-        { id: "S09E18", title: "The Frogger" },
-        { id: "S09E19", title: "The Maid" },
-        { id: "S09E20", title: "The Puerto Rican Day" },
-        { id: "S09E21", title: "The Chronicle (Part 1)" },
-        { id: "S09E22", title: "The Chronicle (Part 2)" },
-        { id: "S09E23", title: "The Finale (Part 1)" },
-        { id: "S09E24", title: "The Finale (Part 2)" }
-      ];
-
-      // =========================================================================
-      // 3. DROPDOWN POPULATION & FILTERING
-      // =========================================================================
-      const seasonSelect = document.getElementById("season-select");
-      const searchInput = document.getElementById("search-input");
-      const episodeSelect = document.getElementById("episode-select");
-
-      function filterEpisodes() {
-        const selectedSeason = seasonSelect.value;
-        const searchQuery = searchInput.value.trim().toLowerCase();
-
-        episodeSelect.innerHTML = '<option value="">-- Choose an episode --</option>';
-
-        const filtered = episodes.filter(ep => {
-          let matchesSeason = true;
-          if (selectedSeason) {
-            const seasonPrefix = `S${String(selectedSeason).padStart(2, "0")}`;
-            matchesSeason = ep.id.startsWith(seasonPrefix);
-          }
-
-          let matchesSearch = true;
-          if (searchQuery) {
-            matchesSearch = ep.title.toLowerCase().includes(searchQuery) || 
-                            ep.id.toLowerCase().includes(searchQuery);
-          }
-
-          return matchesSeason && matchesSearch;
-        });
-
-        if (filtered.length === 0) {
-          episodeSelect.disabled = true;
-          episodeSelect.classList.add("cursor-not-allowed");
-          const opt = document.createElement("option");
-          opt.textContent = "-- No matching episodes --";
-          episodeSelect.appendChild(opt);
-          return;
-        }
-
-        filtered.forEach(ep => {
-          const seasonNum = parseInt(ep.id.substring(1, 3));
-          const opt = document.createElement("option");
-          opt.value = `Season ${seasonNum} - ${ep.id} ${ep.title}`;
-          opt.textContent = `[${ep.id}] ${ep.title}`;
-          episodeSelect.appendChild(opt);
-        });
-
-        episodeSelect.disabled = false;
-        episodeSelect.classList.remove("cursor-not-allowed");
-      }
-
-      seasonSelect.addEventListener("change", filterEpisodes);
-      searchInput.addEventListener("input", filterEpisodes);
-
-      // Populate list immediately on page load
-      filterEpisodes();
-
-      // =========================================================================
-      // 4. WEIGHTED SCORE MATH (30% Story + 10% x 7 Categories = 100%)
-      // =========================================================================
-      const ratingKeys = ["story", "jerry", "george", "elaine", "kramer", "secondary", "so", "oneshot"];
-
-      function calculateWeightedScore() {
-        const getVal = (id) => parseFloat(document.getElementById(`rating-${id}`).value);
-
-        const finalScore = (getVal("story") * 0.30) + 
-                           (getVal("jerry") * 0.10) + 
-                           (getVal("george") * 0.10) + 
-                           (getVal("elaine") * 0.10) + 
-                           (getVal("kramer") * 0.10) + 
-                           (getVal("secondary") * 0.10) + 
-                           (getVal("so") * 0.10) + 
-                           (getVal("oneshot") * 0.10);
-
-        const formattedScore = finalScore.toFixed(2);
-        document.getElementById("live-calculated-score").textContent = formattedScore;
-        return formattedScore;
-      }
-
-      ratingKeys.forEach(key => {
-        const input = document.getElementById(`rating-${key}`);
-        const display = document.getElementById(`val-${key}`);
-        input.addEventListener("input", (e) => {
-          display.textContent = parseFloat(e.target.value).toFixed(1);
-          calculateWeightedScore();
-        });
-      });
-
-      // =========================================================================
-      // 5. SUBMIT REVIEW TO SUPABASE
-      // =========================================================================
-      document.getElementById("review-form").addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        if (!supabase) {
-          alert("Supabase credentials are not configured. Please paste your URL and Anon Key into index.html.");
-          return;
-        }
-
-        const submitBtn = document.getElementById("submit-btn");
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Saving Review...";
-
-        const payload = {
-          username: document.getElementById("username").value,
-          episode_title: document.getElementById("episode-select").value,
-          story_rating: parseFloat(document.getElementById("rating-story").value),
-          jerry_rating: parseFloat(document.getElementById("rating-jerry").value),
-          george_rating: parseFloat(document.getElementById("rating-george").value),
-          elaine_rating: parseFloat(document.getElementById("rating-elaine").value),
-          kramer_rating: parseFloat(document.getElementById("rating-kramer").value),
-          secondary_rating: parseFloat(document.getElementById("rating-secondary").value),
-          so_rating: parseFloat(document.getElementById("rating-so").value),
-          oneshot_rating: parseFloat(document.getElementById("rating-oneshot").value),
-          weighted_score: parseFloat(calculateWeightedScore()),
-          best_scene: document.getElementById("best-scene").value
-        };
-
-        const { data, error } = await supabase.from("reviews").insert([payload]);
-
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Submit Review";
-
-        if (error) {
-          console.error(error);
-          alert("Error saving review: " + error.message);
-        } else {
-          alert("Giddy up! Review submitted successfully.");
-          document.getElementById("best-scene").value = "";
-          fetchLeaderboard();
-        }
-      });
-
-      // =========================================================================
-      // 6. FETCH LEADERBOARD
-      // =========================================================================
-      async function fetchLeaderboard() {
-        const feed = document.getElementById("reviews-feed");
-
-        if (!supabase) {
-          feed.innerHTML = `
-            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 text-sm text-gray-400 text-center">
-              Connect your Supabase URL & Anon Key to view live friend submissions!
-            </div>`;
-          return;
-        }
-
-        const { data: reviews, error } = await supabase
-          .from("reviews")
-          .select("*")
-          .order("weighted_score", { ascending: false });
-
-        if (error) {
-          feed.innerHTML = `<div class="text-red-400 text-sm text-center">Failed to load leaderboard: ${error.message}</div>`;
-          return;
-        }
-
-        if (!reviews || reviews.length === 0) {
-          feed.innerHTML = `<div class="text-gray-500 text-sm text-center py-8">No reviews submitted yet. Be the first!</div>`;
-          return;
-        }
-
-        feed.innerHTML = reviews.map((r, index) => `
-          <div class="bg-gray-800/80 p-4 rounded-lg border border-gray-700 hover:border-gray-600 transition-all">
-            <div class="flex justify-between items-start mb-2">
-              <div>
-                <span class="text-xs font-bold text-yellow-500 uppercase tracking-wider">#${index + 1} Ranked</span>
-                <h4 class="font-bold text-white text-base">${escapeHtml(r.episode_title)}</h4>
-              </div>
-              <span class="text-2xl font-black text-yellow-400 font-mono bg-gray-900 px-2 py-1 rounded border border-yellow-500/30">
-                ${Number(r.weighted_score).toFixed(2)}
-              </span>
-            </div>
-            
-            ${r.best_scene ? `
-              <p class="text-xs italic text-gray-300 bg-gray-900/60 p-2 rounded border-l-2 border-red-500 mb-2">
-                "${escapeHtml(r.best_scene)}"
-              </p>` : ''}
-
-            <div class="flex justify-between text-xs text-gray-500 mt-2 pt-2 border-t border-gray-700/50">
-              <span>Reviewed by <strong class="text-gray-300">${escapeHtml(r.username)}</strong></span>
-              <span>Story: ${r.story_rating}/10</span>
-            </div>
-          </div>
-        `).join("");
-      }
-
-      function escapeHtml(str) {
-        return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      }
-
-      document.getElementById("refresh-btn")?.addEventListener("click", fetchLeaderboard);
-
-      fetchLeaderboard();
-    });
-  </script>
-<script>
   document.addEventListener("DOMContentLoaded", () => {
     // =========================================================================
     // 1. SUPABASE CONFIGURATION
@@ -629,10 +245,12 @@
       document.getElementById("config-warning")?.classList.remove("hidden");
     }
 
-    // Leaderboard state
+    // State Variables
     let cachedReviews = [];
-    let currentTab = 'group'; // 'group' or 'feed'
+    let currentTab = 'group'; // 'group', 'feed', or 'compare'
     let selectedUserFilter = '';
+    let compareUserA = '';
+    let compareUserB = '';
 
     // =========================================================================
     // 2. COMPLETE 180-EPISODE SEINFELD DATASET
@@ -828,9 +446,7 @@
       { id: "S09E24", title: "The Finale (Part 2)" }
     ];
 
-    // =========================================================================
-    // 3. DROPDOWN POPULATION & SEARCH FILTER LOGIC
-    // =========================================================================
+    // Dropdown population
     const seasonSelect = document.getElementById("season-select");
     const searchInput = document.getElementById("search-input");
     const episodeSelect = document.getElementById("episode-select");
@@ -883,7 +499,7 @@
     filterEpisodes();
 
     // =========================================================================
-    // 4. WEIGHTED SCORE MATH (30% Story + 10% x 7 Categories)
+    // 3. WEIGHTED SCORE MATH (30% Story + 10% x 7 Categories)
     // =========================================================================
     const ratingKeys = ["story", "jerry", "george", "elaine", "kramer", "secondary", "so", "oneshot"];
 
@@ -914,7 +530,7 @@
     });
 
     // =========================================================================
-    // 5. SUBMIT REVIEW TO SUPABASE
+    // 4. SUBMIT REVIEW TO SUPABASE
     // =========================================================================
     document.getElementById("review-form").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -959,28 +575,54 @@
     });
 
     // =========================================================================
-    // 6. DUAL LEADERBOARD DISPLAY LOGIC (GROUP AVERAGES VS. INDIVIDUAL)
+    // 5. TABS & SIDE-BY-SIDE COMPARISON LOGIC
     // =========================================================================
     const tabGroupBtn = document.getElementById("tab-group");
     const tabFeedBtn = document.getElementById("tab-feed");
+    const tabCompareBtn = document.getElementById("tab-compare");
+    const singleFilterContainer = document.getElementById("single-filter-container");
+    const compareSelectorsContainer = document.getElementById("compare-selectors-container");
     const userFilterSelect = document.getElementById("user-filter");
+    const compareUserASelect = document.getElementById("compare-user-a");
+    const compareUserBSelect = document.getElementById("compare-user-b");
 
-    tabGroupBtn.addEventListener("click", () => {
-      currentTab = 'group';
-      tabGroupBtn.className = "flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-yellow-500 text-gray-950 transition-colors";
-      tabFeedBtn.className = "flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors";
-      renderLeaderboard();
-    });
+    function setTab(tab) {
+      currentTab = tab;
+      
+      const activeClass = "py-1.5 px-2 text-xs font-bold rounded-lg bg-yellow-500 text-gray-950 transition-colors";
+      const inactiveClass = "py-1.5 px-2 text-xs font-bold rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors";
 
-    tabFeedBtn.addEventListener("click", () => {
-      currentTab = 'feed';
-      tabFeedBtn.className = "flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-yellow-500 text-gray-950 transition-colors";
-      tabGroupBtn.className = "flex-1 py-1.5 px-3 text-xs font-bold rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors";
+      tabGroupBtn.className = tab === 'group' ? activeClass : inactiveClass;
+      tabFeedBtn.className = tab === 'feed' ? activeClass : inactiveClass;
+      tabCompareBtn.className = tab === 'compare' ? activeClass : inactiveClass;
+
+      if (tab === 'compare') {
+        singleFilterContainer.classList.add("hidden");
+        compareSelectorsContainer.classList.remove("hidden");
+      } else {
+        singleFilterContainer.classList.remove("hidden");
+        compareSelectorsContainer.classList.add("hidden");
+      }
+
       renderLeaderboard();
-    });
+    }
+
+    tabGroupBtn.addEventListener("click", () => setTab('group'));
+    tabFeedBtn.addEventListener("click", () => setTab('feed'));
+    tabCompareBtn.addEventListener("click", () => setTab('compare'));
 
     userFilterSelect.addEventListener("change", (e) => {
       selectedUserFilter = e.target.value;
+      renderLeaderboard();
+    });
+
+    compareUserASelect.addEventListener("change", (e) => {
+      compareUserA = e.target.value;
+      renderLeaderboard();
+    });
+
+    compareUserBSelect.addEventListener("change", (e) => {
+      compareUserB = e.target.value;
       renderLeaderboard();
     });
 
@@ -1006,12 +648,14 @@
       }
 
       cachedReviews = reviews || [];
-      populateUserFilterDropdown();
+      populateUserDropdowns();
       renderLeaderboard();
     }
 
-    function populateUserFilterDropdown() {
+    function populateUserDropdowns() {
       const users = [...new Set(cachedReviews.map(r => r.username))].sort();
+
+      // Populate single filter dropdown
       userFilterSelect.innerHTML = '<option value="">Filter by Participant: Show Everyone</option>';
       users.forEach(u => {
         const opt = document.createElement("option");
@@ -1020,51 +664,69 @@
         if (u === selectedUserFilter) opt.selected = true;
         userFilterSelect.appendChild(opt);
       });
+
+      // Populate Compare User A & B dropdowns
+      const prevA = compareUserA;
+      const prevB = compareUserB;
+
+      compareUserASelect.innerHTML = '<option value="">-- Select Friend A --</option>';
+      compareUserBSelect.innerHTML = '<option value="">-- Select Friend B --</option>';
+
+      users.forEach(u => {
+        const optA = document.createElement("option");
+        optA.value = u;
+        optA.textContent = u;
+        if (u === prevA) optA.selected = true;
+        compareUserASelect.appendChild(optA);
+
+        const optB = document.createElement("option");
+        optB.value = u;
+        optB.textContent = u;
+        if (u === prevB) optB.selected = true;
+        compareUserBSelect.appendChild(optB);
+      });
+
+      // Set defaults if 2+ users exist and selections aren't made yet
+      if (users.length >= 2) {
+        if (!compareUserA) compareUserASelect.value = users[0];
+        if (!compareUserB) compareUserBSelect.value = users[1];
+        compareUserA = compareUserASelect.value;
+        compareUserB = compareUserBSelect.value;
+      }
     }
 
     function renderLeaderboard() {
       const feed = document.getElementById("reviews-feed");
 
-      // Filter reviews by selected user if active
-      let filtered = cachedReviews;
-      if (selectedUserFilter) {
-        filtered = cachedReviews.filter(r => r.username === selectedUserFilter);
-      }
-
-      if (!filtered || filtered.length === 0) {
-        feed.innerHTML = `<div class="text-gray-500 text-sm text-center py-8">No reviews found for this selection.</div>`;
-        return;
-      }
-
-      // --- MODE 1: GROUP AVERAGES (TOTAL RANKING) ---
+      // MODE 1: GROUP AVERAGES
       if (currentTab === 'group') {
-        const episodeMap = {};
+        let filtered = cachedReviews;
+        if (selectedUserFilter) {
+          filtered = cachedReviews.filter(r => r.username === selectedUserFilter);
+        }
 
+        if (!filtered || filtered.length === 0) {
+          feed.innerHTML = `<div class="text-gray-500 text-sm text-center py-8">No reviews found for this selection.</div>`;
+          return;
+        }
+
+        const episodeMap = {};
         filtered.forEach(r => {
           if (!episodeMap[r.episode_title]) {
-            episodeMap[r.episode_title] = {
-              title: r.episode_title,
-              scores: [],
-              scenes: [],
-              users: []
-            };
+            episodeMap[r.episode_title] = { title: r.episode_title, scores: [], scenes: [], users: [] };
           }
           episodeMap[r.episode_title].scores.push(Number(r.weighted_score));
           if (r.best_scene) episodeMap[r.episode_title].scenes.push(r.best_scene);
           episodeMap[r.episode_title].users.push(r.username);
         });
 
-        // Compute averages and sort
-        const aggregated = Object.values(episodeMap).map(item => {
-          const avgScore = item.scores.reduce((a, b) => a + b, 0) / item.scores.length;
-          return {
-            title: item.title,
-            avgScore: avgScore,
-            reviewCount: item.scores.length,
-            sampleScene: item.scenes[0] || null,
-            users: item.users
-          };
-        }).sort((a, b) => b.avgScore - a.avgScore);
+        const aggregated = Object.values(episodeMap).map(item => ({
+          title: item.title,
+          avgScore: item.scores.reduce((a, b) => a + b, 0) / item.scores.length,
+          reviewCount: item.scores.length,
+          sampleScene: item.scenes[0] || null,
+          users: item.users
+        })).sort((a, b) => b.avgScore - a.avgScore);
 
         feed.innerHTML = aggregated.map((item, index) => `
           <div class="bg-gray-800/80 p-4 rounded-lg border border-gray-700 hover:border-gray-600 transition-all">
@@ -1080,20 +742,25 @@
                 <span class="block text-[10px] text-gray-400 mt-1">${item.reviewCount} review${item.reviewCount > 1 ? 's' : ''}</span>
               </div>
             </div>
-            
-            ${item.sampleScene ? `
-              <p class="text-xs italic text-gray-300 bg-gray-900/60 p-2 rounded border-l-2 border-red-500 mb-2">
-                "${escapeHtml(item.sampleScene)}"
-              </p>` : ''}
-
+            ${item.sampleScene ? `<p class="text-xs italic text-gray-300 bg-gray-900/60 p-2 rounded border-l-2 border-red-500 mb-2">"${escapeHtml(item.sampleScene)}"</p>` : ''}
             <div class="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-700/50">
               <span>Ranked by: <strong class="text-gray-400">${escapeHtml([...new Set(item.users)].join(', '))}</strong></span>
             </div>
           </div>
         `).join("");
 
-      } else {
-        // --- MODE 2: INDIVIDUAL SUBMISSIONS FEED ---
+      // MODE 2: INDIVIDUAL FEED
+      } else if (currentTab === 'feed') {
+        let filtered = cachedReviews;
+        if (selectedUserFilter) {
+          filtered = cachedReviews.filter(r => r.username === selectedUserFilter);
+        }
+
+        if (!filtered || filtered.length === 0) {
+          feed.innerHTML = `<div class="text-gray-500 text-sm text-center py-8">No individual submissions found.</div>`;
+          return;
+        }
+
         feed.innerHTML = filtered.map((r, index) => `
           <div class="bg-gray-800/80 p-4 rounded-lg border border-gray-700 hover:border-gray-600 transition-all">
             <div class="flex justify-between items-start mb-2">
@@ -1105,18 +772,102 @@
                 ${Number(r.weighted_score).toFixed(2)}
               </span>
             </div>
-            
-            ${r.best_scene ? `
-              <p class="text-xs italic text-gray-300 bg-gray-900/60 p-2 rounded border-l-2 border-red-500 mb-2">
-                "${escapeHtml(r.best_scene)}"
-              </p>` : ''}
-
+            ${r.best_scene ? `<p class="text-xs italic text-gray-300 bg-gray-900/60 p-2 rounded border-l-2 border-red-500 mb-2">"${escapeHtml(r.best_scene)}"</p>` : ''}
             <div class="flex justify-between text-xs text-gray-500 mt-2 pt-2 border-t border-gray-700/50">
               <span>Reviewed by <strong class="text-gray-300">${escapeHtml(r.username)}</strong></span>
               <span>Story: ${r.story_rating}/10</span>
             </div>
           </div>
         `).join("");
+
+      // MODE 3: SIDE-BY-SIDE USER COMPARISON
+      } else if (currentTab === 'compare') {
+        if (!compareUserA || !compareUserB) {
+          feed.innerHTML = `<div class="text-gray-500 text-sm text-center py-8">Select two friends above to compare their episode ratings.</div>`;
+          return;
+        }
+
+        if (compareUserA === compareUserB) {
+          feed.innerHTML = `<div class="text-amber-400 text-sm text-center py-8">Please select two <strong>different</strong> friends to compare.</div>`;
+          return;
+        }
+
+        // Gather reviews for User A & User B
+        const reviewsA = cachedReviews.filter(r => r.username === compareUserA);
+        const reviewsB = cachedReviews.filter(r => r.username === compareUserB);
+
+        // Find common episodes rated by either
+        const allEpisodesRated = [...new Set([
+          ...reviewsA.map(r => r.episode_title),
+          ...reviewsB.map(r => r.episode_title)
+        ])];
+
+        if (allEpisodesRated.length === 0) {
+          feed.innerHTML = `<div class="text-gray-500 text-sm text-center py-8">Neither friend has submitted reviews yet.</div>`;
+          return;
+        }
+
+        const comparisons = allEpisodesRated.map(epTitle => {
+          const revA = reviewsA.find(r => r.episode_title === epTitle);
+          const revB = reviewsB.find(r => r.episode_title === epTitle);
+
+          const scoreA = revA ? Number(revA.weighted_score) : null;
+          const scoreB = revB ? Number(revB.weighted_score) : null;
+          
+          let diff = 0;
+          if (scoreA !== null && scoreB !== null) {
+            diff = Math.abs(scoreA - scoreB);
+          }
+
+          return {
+            title: epTitle,
+            scoreA,
+            scoreB,
+            revA,
+            revB,
+            diff
+          };
+        }).sort((a, b) => b.diff - a.diff); // Sort by biggest disagreement first ("Hot Takes")
+
+        feed.innerHTML = comparisons.map(item => {
+          const isHotTake = item.diff >= 1.5 && item.scoreA !== null && item.scoreB !== null;
+
+          return `
+            <div class="bg-gray-800/80 p-4 rounded-lg border ${isHotTake ? 'border-red-500/60 bg-red-950/10' : 'border-gray-700'} transition-all">
+              <div class="flex justify-between items-center mb-3">
+                <h4 class="font-bold text-white text-sm">${escapeHtml(item.title)}</h4>
+                ${isHotTake ? `<span class="text-[10px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">🔥 Hot Take</span>` : ''}
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 text-center bg-gray-900/80 p-2.5 rounded-lg border border-gray-800">
+                <!-- Friend A -->
+                <div class="border-r border-gray-800 pr-2">
+                  <span class="block text-[10px] text-gray-400 font-bold truncate">${escapeHtml(compareUserA)}</span>
+                  <span class="text-xl font-black font-mono ${item.scoreA !== null ? 'text-yellow-400' : 'text-gray-600'}">
+                    ${item.scoreA !== null ? item.scoreA.toFixed(2) : 'N/A'}
+                  </span>
+                </div>
+                <!-- Friend B -->
+                <div class="pl-2">
+                  <span class="block text-[10px] text-gray-400 font-bold truncate">${escapeHtml(compareUserB)}</span>
+                  <span class="text-xl font-black font-mono ${item.scoreB !== null ? 'text-red-400' : 'text-gray-600'}">
+                    ${item.scoreB !== null ? item.scoreB.toFixed(2) : 'N/A'}
+                  </span>
+                </div>
+              </div>
+
+              ${item.revA && item.revA.best_scene ? `
+                <p class="text-[11px] italic text-yellow-300/90 mt-2 bg-gray-900/40 p-1.5 rounded border-l-2 border-yellow-500">
+                  <strong>${escapeHtml(compareUserA)}:</strong> "${escapeHtml(item.revA.best_scene)}"
+                </p>` : ''}
+
+              ${item.revB && item.revB.best_scene ? `
+                <p class="text-[11px] italic text-red-300/90 mt-1 bg-gray-900/40 p-1.5 rounded border-l-2 border-red-500">
+                  <strong>${escapeHtml(compareUserB)}:</strong> "${escapeHtml(item.revB.best_scene)}"
+                </p>` : ''}
+            </div>
+          `;
+        }).join("");
       }
     }
 
